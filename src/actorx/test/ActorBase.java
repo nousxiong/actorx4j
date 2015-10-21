@@ -1,15 +1,12 @@
-# actorx-java
-An actor-model based communication library(Java version)
+/**
+ * 
+ */
+package actorx.test;
 
-Usage
---------
+import static org.junit.Assert.*;
 
-Just import to eclipse.
+import org.junit.Test;
 
-Example
---------
-
-```java
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.AlreadyQuitedException;
@@ -19,11 +16,17 @@ import actorx.Message;
 import actorx.MessageType;
 import actorx.AbstractHandler;
 
-public class Example {
+/**
+ * @author Xiong
+ *
+ */
+public class ActorBase {
+
+	@Test
 	public void test() throws AlreadyQuitedException {
 		Context ctx = Context.getInstance();
 		ctx.startup();
-	
+
 		Actor base = ctx.spawn();
 		ActorId aid = ctx.spawn(base, new AbstractHandler() {
 			@Override
@@ -62,5 +65,5 @@ public class Example {
 		
 		System.out.println("done.");
 	}
+
 }
-```
