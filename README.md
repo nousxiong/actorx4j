@@ -51,12 +51,12 @@ public class Example {
 		}
 		base.send(aid, "init", "end");
 		Message msg = base.match("ok").recv();
-		assertTrue(msg.getSender().equals(aid));
+		assert(msg.getSender().equals(aid));
 		String reply = msg.get(String.class, 0);
-		assertTrue(reply.equals("Hi!"));
+		assert(reply.equals("Hi!"));
 		
 		msg = base.match(MessageType.EXIT).recv();
-		assertTrue(msg.getSender().equals(aid));
+		assert(msg.getSender().equals(aid));
 		
 		ctx.join();
 		
