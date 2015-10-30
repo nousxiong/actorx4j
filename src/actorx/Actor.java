@@ -30,13 +30,9 @@ public class Actor {
 	/**
 	 * 发送一个空的消息
 	 * @param aid
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public void send(ActorId aid) throws AlreadyQuitedException{
-		if (isQuited()){
-			throw new AlreadyQuitedException();
-		}
-		
+	public void send(ActorId aid){
+		assert !isQuited();
 		sendMessage(this.getActorId(), aid, null);
 	}
 	
@@ -45,13 +41,9 @@ public class Actor {
 	 * @param aid
 	 * @param type 可以为null
 	 * @param args 可以无参数
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public void send(ActorId aid, String type, Object... args) throws AlreadyQuitedException{
-		if (isQuited()){
-			throw new AlreadyQuitedException();
-		}
-		
+	public void send(ActorId aid, String type, Object... args){
+		assert !isQuited();
 		sendMessage(this.getActorId(), aid, type, args);
 	}
 	
@@ -59,13 +51,9 @@ public class Actor {
 	 * 转发一个消息；被转发的消息的sender会保持原始的sender
 	 * @param aid
 	 * @param msg
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public void relay(ActorId aid, Message msg) throws AlreadyQuitedException{
-		if (isQuited()){
-			throw new AlreadyQuitedException();
-		}
-		
+	public void relay(ActorId aid, Message msg){
+		assert !isQuited();
 		relayMessage(aid, msg);
 	}
 	
@@ -73,13 +61,9 @@ public class Actor {
 	 * 匹配指定的消息
 	 * @param types 指定的消息中有一个匹配就返回；匹配顺序按照列表的自然顺序（从开头到结尾）
 	 * @return
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public Actor match(String... types) throws AlreadyQuitedException{
-		if (isQuited()){
-			throw new AlreadyQuitedException();
-		}
-		
+	public Actor match(String... types){
+		assert !isQuited();
 		for (String type : types){
 			matchedTypes.add(type);
 		}
@@ -89,9 +73,8 @@ public class Actor {
 	/**
 	 * 阻塞当前线程等待至少有一个消息返回
 	 * @return
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public Message recv() throws AlreadyQuitedException{
+	public Message recv(){
 		return recv(Long.MAX_VALUE);
 	}
 	
@@ -99,12 +82,9 @@ public class Actor {
 	 * 阻塞当前线程等待至少有一个消息或者超时返回
 	 * @param timeout 超时时间（毫秒）
 	 * @return
-	 * @throws AlreadyQuitedException 假如已经退出，抛出异常
 	 */
-	public Message recv(long timeout) throws AlreadyQuitedException{
-		if (isQuited()){
-			throw new AlreadyQuitedException();
-		}
+	public Message recv(long timeout){
+		assert !isQuited();
 		
 		Message msg = mailbox.fetch(matchedTypes);
 		if (msg != null){

@@ -10,15 +10,12 @@ package actorx;
 public abstract class AbstractHandler implements Runnable {
 	private Actor self = null;
 	@Override
-	public void run() {
+	public void run(){
 		assert(self != null);
 		ExitType et = ExitType.NORMAL;
 		String errmsg = "no error";
 		try{
 			run(self);
-		}catch (AlreadyQuitedException e){
-			et = ExitType.EXCEPT;
-			errmsg = e.getMessage();
 		}catch (Exception e){
 			et = ExitType.EXCEPT;
 			errmsg = e.getMessage();
@@ -27,9 +24,9 @@ public abstract class AbstractHandler implements Runnable {
 		}
 	}
 
-	abstract public void run(Actor self) throws AlreadyQuitedException;
+	abstract public void run(Actor self);
 
-	public void setSelf(Actor self) {
+	public void setSelf(Actor self){
 		this.self = self;
 	}
 }

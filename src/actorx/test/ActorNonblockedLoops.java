@@ -10,7 +10,6 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AlreadyQuitedException;
 import actorx.Context;
 import actorx.AbstractHandler;
 import actorx.Message;
@@ -26,7 +25,7 @@ public class ActorNonblockedLoops {
 	private static final int testCount = 30;
 	
 	@Test
-	public void test() throws AlreadyQuitedException {
+	public void test(){
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
 		for (int i=0; i<testCount - 1; ++i){
@@ -36,7 +35,7 @@ public class ActorNonblockedLoops {
 		System.out.printf("Eclipse time: %d ms\n", eclipse);
 	}
 
-	private long loop() throws AlreadyQuitedException{
+	private long loop(){
 		Context ctx = Context.getInstance();
 		ctx.startup();
 
@@ -45,7 +44,7 @@ public class ActorNonblockedLoops {
 		for (int i=0; i<concurr; ++i){
 			ActorId aid = ctx.spawn(consumer, new AbstractHandler() {
 				@Override
-				public void run(Actor self) throws AlreadyQuitedException {
+				public void run(Actor self){
 					Message msg = self.match("init").recv();
 					ActorId sender = msg.getSender();
 					for (int i=0; i<count; ++i){

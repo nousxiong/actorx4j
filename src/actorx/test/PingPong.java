@@ -9,7 +9,6 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AlreadyQuitedException;
 import actorx.Context;
 import actorx.AbstractHandler;
 import actorx.Message;
@@ -22,14 +21,14 @@ public class PingPong {
 
 	private static final int count = 10000;
 	@Test
-	public void test() throws AlreadyQuitedException {
+	public void test(){
 		Context ctx = Context.getInstance();
 		ctx.startup();
 
 		Actor base = ctx.spawn();
 		ActorId aid = ctx.spawn(base, new AbstractHandler() {
 			@Override
-			public void run(Actor self) throws AlreadyQuitedException {
+			public void run(Actor self){
 				while (true){
 					Message msg = self.match("pingpong","end").recv();
 					ActorId sender = msg.getSender();

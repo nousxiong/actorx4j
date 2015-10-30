@@ -10,7 +10,6 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.ActorLite;
-import actorx.AlreadyQuitedException;
 import actorx.Context;
 import actorx.AbstractHandler;
 import actorx.LinkType;
@@ -45,14 +44,14 @@ public class ActorLiteBase {
 		}
 	}
 	@Test
-	public void test() throws AlreadyQuitedException {
+	public void test(){
 		Context ctx = Context.getInstance();
 		ctx.startup();
 		
 		Actor base = ctx.spawn();
 		ctx.spawn(base, new AbstractHandler() {
 			@Override
-			public void run(Actor self) throws AlreadyQuitedException {
+			public void run(Actor self){
 				CountDown c = new CountDown(self.getActorId(), 10);
 				while (true){
 					Message msg = self.match("cd").recv();
