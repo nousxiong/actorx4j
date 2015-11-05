@@ -56,7 +56,7 @@ public class ActorLiteBase {
 				while (true){
 					Message msg = self.match("cd").recv();
 					assertTrue(msg.getSender().equals(c.getActorId()));
-					int count = msg.get(Integer.class, 0);
+					int count = msg.get(0);
 					System.out.println("Count: "+count);
 					if (count == 0){
 						break;

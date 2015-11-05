@@ -31,12 +31,13 @@ public class Message {
 		return type;
 	}
 	
-	public <T> T get(Class<T> c, int i){
+	@SuppressWarnings("unchecked")
+	public <T> T get(int i){
 		if (i >= args.length){
 			return null;
 		}
 		
-		return c.cast(args[i]);
+		return (T) args[i];
 	}
 	
 	public Object[] get(){
