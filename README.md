@@ -33,7 +33,7 @@ public class Example {
 					Message msg = self.match("init").recv(3000);
 					if (msg != null){
 						sender = msg.getSender();
-						String str = msg.get(String.class, 0);
+						String str = msg.get(0);
 						if (str.equals("end")){
 							System.out.println("Recv<"+str+">");
 							break;
@@ -52,7 +52,7 @@ public class Example {
 		base.send(aid, "init", "end");
 		Message msg = base.match("ok").recv();
 		assert(msg.getSender().equals(aid));
-		String reply = msg.get(String.class, 0);
+		String reply = msg.get(0);
 		assert(reply.equals("Hi!"));
 		
 		msg = base.match(MessageType.EXIT).recv();
