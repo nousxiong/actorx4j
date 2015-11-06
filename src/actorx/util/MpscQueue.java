@@ -4,14 +4,13 @@
 package actorx.util;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Xiong
  */
 public class MpscQueue<E> {
 	private ConcurrentLinkedQueue<E> que = new ConcurrentLinkedQueue<E>();
-	private AtomicBoolean blocked = new AtomicBoolean(false);
+	private volatile boolean blocked = false;
 
 	public void add(E e){
 		que.add(e);
@@ -111,14 +110,14 @@ public class MpscQueue<E> {
 	}
 	
 	private boolean isBlocked(){
-		return blocked.get();
+		return blocked;
 	}
 	
 	private void block(){
-		blocked.set(true);
+		blocked = true;
 	}
 	
 	private void unblock(){
-		blocked.set(false);
+		blocked = false;
 	}
 }
