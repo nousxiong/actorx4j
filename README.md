@@ -1,4 +1,4 @@
-# actorx-java
+# actorx4j
 An actor-model based communication library(Java version)
 
 Usage
