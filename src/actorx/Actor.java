@@ -36,7 +36,7 @@ public class Actor {
 	public void send(ActorId aid){
 		assert !isQuited();
 		assert aid != null;
-		sendMessage(this.getActorId(), aid, null);
+		sendMessage(this.getActorId(), aid);
 	}
 	
 	/**
@@ -57,7 +57,7 @@ public class Actor {
 	 * @param msg
 	 */
 	public void send(ActorId aid, Message msg){
-		send(aid, msg, null);
+		send(aid, msg, (String) null);
 	}
 	
 	/**
@@ -69,10 +69,7 @@ public class Actor {
 		assert !isQuited();
 		assert aid != null;
 		assert msg != null;
-		msg.setSender(this.getActorId());
-		msg.setType(type);
-		msg.set(args);
-		sendMessage(aid, msg);
+		sendMessage(this.getActorId(), aid, msg, type, args);
 	}
 	
 	/**
@@ -252,12 +249,37 @@ public class Actor {
 	}
 	
 	/**
+	 * 发送消息
+	 * @param sender
+	 * @param recver
+	 * @param msg
+	 * @param type
+	 * @param args
+	 */
+	public static void sendMessage(ActorId sender, ActorId recver, Message msg, String type, Object... args){
+		msg.setSender(sender);
+		msg.setType(type);
+		msg.set(args);
+		sendMessage(recver, msg);
+	}
+	
+	/**
 	 * 发送一个空消息
 	 * @param sender
 	 * @param recver
 	 */
 	public static void sendMessage(ActorId sender, ActorId recver){
-		sendMessage(sender, recver, null);
+		sendMessage(sender, recver, (String) null);
+	}
+	
+	/**
+	 * 发送一个空消息
+	 * @param sender
+	 * @param recver
+	 * @param msg
+	 */
+	public static void sendMessage(ActorId sender, ActorId recver, Message msg){
+		sendMessage(sender, recver, msg, (String) null);
 	}
 
 	/**
@@ -267,15 +289,18 @@ public class Actor {
 	 * @param args
 	 */
 	public static void sendMessage(ActorId recver, String type, Object... args){
-		sendMessage(null, recver, type, args);
+		sendMessage((ActorId) null, recver, type, args);
 	}
 	
 	/**
-	 * 使用空的sender发送一个空的消息
+	 * 使用空的sender发送消息
 	 * @param recver
+	 * @param msg
+	 * @param type
+	 * @param args
 	 */
-	public static void sendMessage(ActorId recver){
-		sendMessage(null, recver, null);
+	public static void sendMessage(ActorId recver, Message msg, String type, Object... args){
+		sendMessage((ActorId) null, recver, msg, type, args);
 	}
 	
 	///------------------------------------------------------------------------

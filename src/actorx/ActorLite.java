@@ -19,10 +19,18 @@ public class ActorLite {
 	}
 	
 	public void send(ActorId aid){
-		Actor.sendMessage(selfAid, aid, null);
+		Actor.sendMessage(selfAid, aid);
+	}
+	
+	public void send(ActorId aid, Message msg){
+		Actor.sendMessage(selfAid, aid, msg);
 	}
 	
 	public void send(ActorId aid, String type, Object... args){
 		Actor.sendMessage(selfAid, aid, type, args);
+	}
+	
+	public void send(ActorId aid, Message msg, String type, Object... args){
+		Actor.sendMessage(selfAid, aid, msg, type, args);
 	}
 }
