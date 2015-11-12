@@ -12,7 +12,6 @@ import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.Context;
-import actorx.LinkType;
 import actorx.Message;
 import actorx.MessagePool;
 
