@@ -5,17 +5,19 @@ package actorx;
 
 import java.util.ArrayList;
 import java.util.List;
-import actorx.util.MpscQueue;
+import java.util.concurrent.TimeUnit;
+
+import cque.IntrusiveMpscQueue;
 
 /**
  * @author Xiong
  */
 public class Actor {
-	private ActorId aid = null;
+	private ActorId selfAid = null;
 	/**自己退出时需要发送EXIT消息的列表*/
 	private List<ActorId> linkList = new ArrayList<ActorId>(1);
 	/**消息队列*/
-	private MpscQueue<Message> msgQue = new MpscQueue<Message>();
+	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>();
 	/**邮箱*/
 	private Mailbox mailbox = new Mailbox();
 	/**临时数据，用于取消息时，匹配的消息类型列表*/
@@ -24,7 +26,7 @@ public class Actor {
 	private boolean quited = false;
 	
 	public Actor(ActorId aid){
-		this.aid = aid;
+		this.selfAid = aid;
 	}
 	
 	/**
@@ -33,6 +35,7 @@ public class Actor {
 	 */
 	public void send(ActorId aid){
 		assert !isQuited();
+		assert aid != null;
 		sendMessage(this.getActorId(), aid, null);
 	}
 	
@@ -44,7 +47,32 @@ public class Actor {
 	 */
 	public void send(ActorId aid, String type, Object... args){
 		assert !isQuited();
+		assert aid != null;
 		sendMessage(this.getActorId(), aid, type, args);
+	}
+	
+	/**
+	 * 发送消息
+	 * @param aid 接收者
+	 * @param msg
+	 */
+	public void send(ActorId aid, Message msg){
+		send(aid, msg, null);
+	}
+	
+	/**
+	 * 发送消息
+	 * @param aid 接收者
+	 * @param msg
+	 */
+	public void send(ActorId aid, Message msg, String type, Object... args){
+		assert !isQuited();
+		assert aid != null;
+		assert msg != null;
+		msg.setSender(this.getActorId());
+		msg.setType(type);
+		msg.set(args);
+		sendMessage(aid, msg);
 	}
 	
 	/**
@@ -54,6 +82,7 @@ public class Actor {
 	 */
 	public void relay(ActorId aid, Message msg){
 		assert !isQuited();
+		assert aid != null;
 		relayMessage(aid, msg);
 	}
 	
@@ -84,6 +113,16 @@ public class Actor {
 	 * @return
 	 */
 	public Message recv(long timeout){
+		return recv(timeout, TimeUnit.MILLISECONDS);
+	}
+	
+	/**
+	 * 阻塞当前线程等待至少有一个消息或者超时返回
+	 * @param timeout 超时时间
+	 * @param tu
+	 * @return
+	 */
+	public Message recv(long timeout, TimeUnit tu){
 		assert !isQuited();
 		
 		Message msg = mailbox.fetch(matchedTypes);
@@ -92,6 +131,7 @@ public class Actor {
 			return msg;
 		}
 		
+		timeout = tu.toMillis(timeout);
 		long currTimeout = timeout;
 		while (true){
 			long bt = 0;
@@ -100,7 +140,7 @@ public class Actor {
 				bt = System.currentTimeMillis();
 			}
 			
-			msg = msgQue.poll(currTimeout);
+			msg = msgQue.poll(currTimeout, tu);
 			if (msg == null){
 				break;
 			}
@@ -161,7 +201,7 @@ public class Actor {
 		}
 		
 		Context ctx = Context.getInstance();
-		ctx.removeActor(aid);
+		ctx.removeActor(selfAid);
 		
 		for (ActorId aid : linkList){
 			sendMessage(this.getActorId(), aid, MessageType.EXIT, et, errmsg);
@@ -175,7 +215,7 @@ public class Actor {
 	 * @return
 	 */
 	public ActorId getActorId(){
-		return aid;
+		return selfAid;
 	}
 	
 	/**
@@ -190,15 +230,25 @@ public class Actor {
 	 * 发送消息
 	 * @param sender 发送者，可以为null
 	 * @param recver 接收者，不能为null
-	 * @param type 消息类型，可以为null
-	 * @param args 参数，可以不指定
+	 * @param msg 消息
 	 */
-	public static void sendMessage(ActorId sender, ActorId recver, String type, Object... args){
+	public static void sendMessage(ActorId recver, Message msg){
 		Actor a = Context.getInstance().getActor(recver);
 		if (a == null){
 			return;
 		}
-		a.addMessage(new Message(sender, type, args));
+		a.addMessage(msg);
+	}
+	
+	/**
+	 * 发送消息
+	 * @param sender 发送者，可以为null
+	 * @param recver 接收者，不能为null
+	 * @param type 消息类型，可以为null
+	 * @param args 参数，可以不指定
+	 */
+	public static void sendMessage(ActorId sender, ActorId recver, String type, Object... args){
+		sendMessage(recver, new Message(sender, type, args));
 	}
 	
 	/**

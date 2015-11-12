@@ -6,6 +6,11 @@ Usage
 
 Just import to eclipse.
 
+Dependencies
+--------
+
+https://github.com/nousxiong/cque4j
+
 Example
 --------
 

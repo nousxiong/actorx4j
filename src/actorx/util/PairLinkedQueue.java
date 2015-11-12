@@ -16,20 +16,19 @@ public class PairLinkedQueue<E> {
 	 * @param 返回添加成功后的节点
 	 * @return
 	 */
-	public PairLinkedNode<E> add(E e){
+	public PairLinkedNode<E> add(PairLinkedNode<E> newNode){
 		if (this.tail == null){
 			if (this.head == null){
-				PairLinkedNode<E> newNode = new PairLinkedNode<E>(e);
 				this.head = newNode;
 				this.tail = newNode;
 				newNode.prev = null;
 				newNode.next = null;
 				return newNode;
 			}else{
-				return insertBefore(this.head, e);
+				return insertBefore(this.head, newNode);
 			}
 		}else{
-			return insertAfter(this.tail, e);
+			return insertAfter(this.tail, newNode);
 		}
 	}
 	
@@ -84,13 +83,14 @@ public class PairLinkedQueue<E> {
 	 */
 	public void clear(){
 		while (!isEmpty()){
+			PairLinkedNode<E> node = head;
 			remove(head);
+			node.release();
 		}
-		assert(isEmpty());
+		assert isEmpty();
 	}
 	
-	private PairLinkedNode<E> insertAfter(PairLinkedNode<E> node, E e){
-		PairLinkedNode<E> newNode = new PairLinkedNode<E>(e);
+	private PairLinkedNode<E> insertAfter(PairLinkedNode<E> node, PairLinkedNode<E> newNode){
 		newNode.prev = node;
 		newNode.next = node.next;
 		if (node.next == null){
@@ -102,8 +102,7 @@ public class PairLinkedQueue<E> {
 		return newNode;
 	}
 	
-	private PairLinkedNode<E> insertBefore(PairLinkedNode<E> node, E e){
-		PairLinkedNode<E> newNode = new PairLinkedNode<E>(e);
+	private PairLinkedNode<E> insertBefore(PairLinkedNode<E> node, PairLinkedNode<E> newNode){
 		newNode.prev = node.prev;
 		newNode.next = node;
 		if (node.prev == null){

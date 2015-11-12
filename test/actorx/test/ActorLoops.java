@@ -3,30 +3,32 @@
  */
 package actorx.test;
 
+import static org.junit.Assert.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.Context;
-import actorx.AbstractHandler;
 import actorx.Message;
 
 /**
  * @author Xiong
- * 测试Actor非阻塞性能
+ *
  */
-public class ActorNonblockedLoops {
+public class ActorLoops {
 
 	private static final int concurr = Runtime.getRuntime().availableProcessors() * 1;
 	private static final long count = 100000;
 	private static final int testCount = 10;
 	
 	@Test
-	public void test(){
+	public void test() {
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
 		for (int i=0; i<testCount - 1; ++i){
@@ -62,14 +64,11 @@ public class ActorNonblockedLoops {
 		}
 		
 		long loop = count * concurr;
-		while (true){
-			Message data = consumer.recv(0, TimeUnit.MILLISECONDS);
-			if (data != null){
-				if (--loop == 0){
-					break;
-				}
-			}
+		for (int i=0; i<loop; ++i){
+			Message data = consumer.recv();
+			assertTrue(data != null);
 		}
+		
 		long eclipse = System.currentTimeMillis() - bt;
 		ctx.join();
 		return eclipse;

@@ -11,7 +11,7 @@ public abstract class AbstractHandler implements Runnable {
 	private Actor self = null;
 	@Override
 	public void run(){
-		assert(self != null);
+		assert self != null;
 		ExitType et = ExitType.NORMAL;
 		String errmsg = "no error";
 		try{

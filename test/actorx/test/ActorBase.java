@@ -5,6 +5,8 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 import actorx.Actor;
@@ -32,7 +34,7 @@ public class ActorBase {
 			public void run(Actor self){
 				ActorId sender = null;
 				while (true){
-					Message msg = self.match("init").recv(3000);
+					Message msg = self.match("init").recv(3000, TimeUnit.MILLISECONDS);
 					if (msg != null){
 						sender = msg.getSender();
 						String str = msg.get(0);
