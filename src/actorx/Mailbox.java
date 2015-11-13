@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cque.NodePool;
+import cque.INodePool;
 import actorx.util.MessagePairPool;
 import actorx.util.PairLinkedNode;
 import actorx.util.PairLinkedQueue;
@@ -19,7 +19,7 @@ import actorx.util.PairLinkedQueue;
 public class Mailbox {
 	private PairLinkedQueue<Message> totalList = new PairLinkedQueue<Message>();
 	private Map<String, PairLinkedQueue<Message>> typedMap = new HashMap<String, PairLinkedQueue<Message>>();
-	private NodePool pool;
+	private INodePool pool;
 	
 	public void add(Message msg){
 		PairLinkedNode<Message> totalNode = totalList.add(getNode(msg));
@@ -84,7 +84,7 @@ public class Mailbox {
 	}
 	
 	private PairLinkedNode<Message> getNode(Message msg){
-		NodePool pool = getNodePool();
+		INodePool pool = getNodePool();
 		PairLinkedNode<Message> n = pool.get();
 		if (n == null){
 			n = new PairLinkedNode<Message>();
@@ -94,7 +94,7 @@ public class Mailbox {
 		return n;
 	}
 	
-	private NodePool getNodePool(){
+	private INodePool getNodePool(){
 		if (pool == null){
 			pool = MessagePairPool.getNodePool();
 		}

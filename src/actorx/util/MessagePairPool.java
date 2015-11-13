@@ -5,6 +5,7 @@ package actorx.util;
 
 import actorx.Message;
 import cque.INode;
+import cque.INodePool;
 import cque.NodePool;
 
 /**
@@ -12,9 +13,9 @@ import cque.NodePool;
  * 配对节点池
  */
 public class MessagePairPool {
-	private static final ThreadLocal<NodePool> pool;
+	private static final ThreadLocal<INodePool> pool;
 	static{
-		pool = new ThreadLocal<NodePool>();
+		pool = new ThreadLocal<INodePool>();
 	}
 	private static int initSize = 0;
 	private static int maxSize = Integer.MAX_VALUE;
@@ -24,8 +25,8 @@ public class MessagePairPool {
 		MessagePairPool.maxSize = maxSize;
 	}
 	
-	public static final NodePool getNodePool(){
-		NodePool p = pool.get();
+	public static final INodePool getNodePool(){
+		INodePool p = pool.get();
 		if (p == null){
 			INode[] initNodes = null;
 			if (MessagePairPool.initSize > 0){

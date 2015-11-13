@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import cque.NodePool;
+import cque.INodePool;
 import actorx.Message;
 import actorx.util.MessagePairPool;
 import actorx.util.PairLinkedNode;
@@ -20,7 +20,7 @@ import actorx.util.PairLinkedQueue;
 public class PairPool{
 	
 	private PairLinkedNode<Message> getNode(Message msg){
-		NodePool pool = MessagePairPool.getNodePool();
+		INodePool pool = MessagePairPool.getNodePool();
 		PairLinkedNode<Message> n = pool.get();
 		if (n == null){
 			n = new PairLinkedNode<Message>();
@@ -32,7 +32,7 @@ public class PairPool{
 	
 	@Test
 	public void test(){
-		NodePool pool = MessagePairPool.getNodePool();
+		INodePool pool = MessagePairPool.getNodePool();
 		assertTrue(pool.size() == 0);
 		PairLinkedQueue<Message> leftList = new PairLinkedQueue<Message>();
 		PairLinkedQueue<Message> rightList = new PairLinkedQueue<Message>();

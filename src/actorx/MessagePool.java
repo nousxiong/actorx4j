@@ -5,7 +5,7 @@ package actorx;
 
 import actorx.util.MessageFactory;
 import cque.ConcurrentNodePool;
-import cque.MpscNodePool;
+import cque.INodePool;
 
 /**
  * @author Xiong
@@ -31,7 +31,7 @@ public class MessagePool {
 	 * @return 不会为null
 	 */
 	public static Message get(){
-		MpscNodePool pool = getLocalPool();
+		INodePool pool = getLocalPool();
 		return get(pool);
 	}
 	
@@ -40,7 +40,7 @@ public class MessagePool {
 	 * @param pool
 	 * @return 不会为null
 	 */
-	public static Message get(MpscNodePool pool){
+	public static Message get(INodePool pool){
 		assert pool == getLocalPool();
 		return cpool.get(pool);
 	}
@@ -49,7 +49,7 @@ public class MessagePool {
 	 * 取得本地线程的池
 	 * @return
 	 */
-	public static MpscNodePool getLocalPool(){
+	public static INodePool getLocalPool(){
 		return cpool.getLocalPool();
 	}
 }
