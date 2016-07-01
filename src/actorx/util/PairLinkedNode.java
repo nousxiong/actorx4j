@@ -33,6 +33,13 @@ public class PairLinkedNode<E> implements INode {
 	}
 
 	@Override
+	public INode fetchNext(){
+		INode nx = next;
+		next = null;
+		return nx;
+	}
+
+	@Override
 	public void onFree(){
 		poolNext = null;
 		freer = null;

@@ -79,6 +79,13 @@ public class Message implements INode {
 	}
 
 	@Override
+	public INode fetchNext(){
+		INode nx = next;
+		next = null;
+		return nx;
+	}
+
+	@Override
 	public void onFree(){
 		sender = null;
 		type = null;
