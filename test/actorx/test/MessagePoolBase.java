@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import cque.INodePool;
+import cque.MpscNodePool;
 import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
@@ -36,7 +36,7 @@ public class MessagePoolBase {
 			producers[i] = ctx.spawn(base, new AbstractHandler() {
 				public void run(Actor self){
 					ActorId sender = self.match("init").recv().getSender();
-					INodePool pool = MessagePool.getLocalPool();
+					MpscNodePool<Message> pool = MessagePool.getLocalPool();
 					for (int i=0; i<count; ++i){
 						Message msg = MessagePool.get(pool);
 						self.send(sender, msg, "test");
