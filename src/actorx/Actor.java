@@ -205,6 +205,7 @@ public class Actor {
 		}
 		quited = true;
 		mailbox.clear();
+		msgQue.clear();
 	}
 	
 	/**
