@@ -15,6 +15,7 @@ public abstract class AbstractHandler implements Runnable {
 		ExitType et = ExitType.NORMAL;
 		String errmsg = "no error";
 		try{
+			self.init();
 			run(self);
 		}catch (Exception e){
 			et = ExitType.EXCEPT;

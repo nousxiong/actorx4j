@@ -15,56 +15,85 @@ Example
 --------
 
 ```java
+package actorx.test;
+
+import static org.junit.Assert.*;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
+
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Context;
+import actorx.AxService;
+import actorx.ExitType;
 import actorx.LinkType;
 import actorx.Message;
-import actorx.MessageType;
+import actorx.MessageGuard;
 import actorx.AbstractHandler;
+import actorx.Packet;
+import actorx.Pattern;
 
-public class Example {
-	public void test() {
-		Context ctx = Context.getInstance();
-		ctx.startup();
-	
-		Actor base = ctx.spawn();
-		ActorId aid = ctx.spawn(base, new AbstractHandler() {
+/**
+ * @author Xiong
+ *
+ */
+public class ActorBase {
+
+	@Test
+	public void test(){
+		AxService axs = new AxService("AXS");
+		axs.startup();
+
+		Actor baseAx = axs.spawn();
+		ActorId aid = axs.spawn(baseAx, new AbstractHandler() {
 			@Override
-			public void run(Actor self) {
-				ActorId sender = null;
+			public void run(Actor self){
+				Packet pkt = self.recv(Packet.NULL, "INIT");
+				ActorId baseAid = pkt.getSender();
+				
+				// 设置接收模式
+				Pattern patt = new Pattern();
+				patt.match("HELLO");
+				patt.after(3000, TimeUnit.MILLISECONDS);
+				
 				while (true){
-					Message msg = self.match("init").recv(3000);
-					if (msg != null){
-						sender = msg.getSender();
-						String str = msg.get(0);
-						if (str.equals("end")){
+					try (MessageGuard guard = self.recv(patt)){
+						Message msg = guard.get();
+						if (msg == null){
+							// 超时
+							continue;
+						}
+						
+						String str = msg.read();
+						if ("end".equals(str)){
 							System.out.println("Recv<"+str+">");
 							break;
 						}
+					}catch (Exception e){
+						e.printStackTrace();
 					}
 				}
-				self.send(sender, "ok", "Hi!");
+				self.send(baseAid, "OK", "Bye!");
 			}
 		}, 
 		LinkType.MONITORED
 		);
 		
+		baseAx.send(aid, "INIT");
 		for (int i=0; i<100; ++i){
-			base.send(aid, "init", "Hello World!");
+			baseAx.send(aid, "HELLO", "Hello World!");
 		}
-		base.send(aid, "init", "end");
-		Message msg = base.match("ok").recv();
-		assert(msg.getSender().equals(aid));
-		String reply = msg.get(0);
-		assert(reply.equals("Hi!"));
+		baseAx.send(aid, "HELLO", "end");
 		
-		msg = base.match(MessageType.EXIT).recv();
-		assert(msg.getSender().equals(aid));
+		Packet pkt = baseAx.recv(Packet.NULL, "OK");
+		assertTrue(pkt.getSender().equals(aid));
+		String reply = pkt.read();
+		assertTrue("Bye!".equals(reply));
 		
-		ctx.join();
+		assertTrue(baseAx.recvExit() == ExitType.NORMAL);
 		
-		System.out.println("done.");
+		axs.shutdown();
 	}
 }
 ```

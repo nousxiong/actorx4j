@@ -12,6 +12,7 @@ import cque.MpscNodePool;
  * 消息对象池
  */
 public class MessagePool {
+	
 	/** 消息节点池 */
 	private static final ConcurrentNodePool<Message> cpool = 
 		new ConcurrentNodePool<Message>(new MessageFactory());

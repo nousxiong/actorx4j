@@ -57,6 +57,7 @@ public class PairLinkedNode<E> implements INode {
 	public void release(){
 		if (freer != null){
 			freer.free(this);
+			freer = null;
 		}
 	}
 

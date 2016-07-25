@@ -14,10 +14,9 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Xiong
  */
-public class Context {
-	/** 单件 */
-	private static Context instance = new Context();
-
+public class AxService {
+	// AxService unique id
+	private long axid;
 	/** 启动时间戳 */
 	private long timestamp;
 	/** actor全局表 */
@@ -25,29 +24,30 @@ public class Context {
 	/** Actor线程池 */
 	private ExecutorService threadPool = null;
 	/** ActorId分配基础 */
-	private AtomicLong actorIdBase = new AtomicLong(0);
+	private AtomicLong[] actorIdBases;
+	private int currentIdBase = 0;
 	
-	public static Context getInstance(){
-		return instance;
-	}
 	
-	public Context(){
+	public AxService(String axid){
+		this.axid = Atom.to(axid);
 		this.timestamp = System.currentTimeMillis();
 	}
 	
 	public void startup(){
-		startup(Runtime.getRuntime().availableProcessors());
+		startup(Executors.newCachedThreadPool());
 	}
 	
 	public void startup(int threadNum){
+		this.actorIdBases = makeActorIdBases(threadNum);
 		this.threadPool = Executors.newFixedThreadPool(threadNum);
 	}
 	
 	public void startup(ExecutorService threadPool){
+		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
 		this.threadPool = threadPool;
 	}
 	
-	public void join(){
+	public void shutdown(){
 		threadPool.shutdown();
 		try{
 			threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
@@ -61,12 +61,20 @@ public class Context {
 	}
 	
 	/**
+	 * 获取axid
+	 * @return
+	 */
+	public long getAxid(){
+		return axid;
+	}
+	
+	/**
 	 * 产生一个actor，自己调度
 	 * @return 新Actor
 	 */
 	public Actor spawn(){
 		ActorId aid = generateActorId();
-		Actor actor = new Actor(aid);
+		Actor actor = new Actor(this, aid, false);
 		actorMap.put(aid, actor);
 		return actor;
 	}
@@ -131,6 +139,9 @@ public class Context {
 		return timestamp;
 	}
 	
+	///------------------------------------------------------------------------
+	/// 以下方法内部使用
+	///------------------------------------------------------------------------
 	public Actor getActor(ActorId aid){
 		return actorMap.get(aid);
 	}
@@ -139,9 +150,16 @@ public class Context {
 		actorMap.remove(aid);
 	}
 	
-	public ActorId generateActorId(){
-		long id = actorIdBase.incrementAndGet();
-		return new ActorId(id, timestamp);
+	private ActorId generateActorId(){
+		int index = this.currentIdBase;
+		long incr = actorIdBases[index].incrementAndGet();
+		++index;
+		if (index >= actorIdBases.length){
+			index = 0;
+		}
+		
+		long id = incr * 100 + index;
+		return new ActorId(axid, timestamp, id, id);
 	}
 	
 	private static void addLink(Actor sire, Actor child, LinkType link){
@@ -155,9 +173,23 @@ public class Context {
 	
 	private Actor makeActor(AbstractHandler af){
 		ActorId aid = generateActorId();
-		Actor actor = new Actor(aid);
+		Actor actor = new Actor(this, aid, true);
 		actorMap.put(aid, actor);
 		af.setSelf(actor);
 		return actor;
+	}
+	
+	private AtomicLong[] makeActorIdBases(int concurr){
+		if (concurr < 0){
+			concurr = 1;
+		}else if (concurr > 99){
+			concurr = 99;
+		}
+		
+		AtomicLong[] actorIdBases = new AtomicLong[concurr];
+		for (int i=0; i<actorIdBases.length; ++i){
+			actorIdBases[i] = new AtomicLong(0);
+		}
+		return actorIdBases;
 	}
 }

@@ -7,13 +7,16 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.Test;
 
 import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Context;
-import actorx.Message;
+import actorx.AxService;
+import actorx.CowBufferPool;
+import actorx.MessagePool;
+import actorx.Packet;
 
 /**
  * @author Xiong
@@ -22,53 +25,62 @@ import actorx.Message;
 public class ActorLoops {
 
 	private static final int concurr = Runtime.getRuntime().availableProcessors() * 1;
-	private static final long count = 100000;
-	private static final int testCount = 10;
+	private static final int count = 100000;
 	
 	@Test
 	public void test() {
 		System.out.println("Concurrent count: "+concurr);
-		long eclipse = loop();
-		for (int i=0; i<testCount - 1; ++i){
-			eclipse += loop();
-			eclipse /= 2;
-		}
-		System.out.printf("Eclipse time: %d ms\n", eclipse);
-	}
+		MessagePool.init(count * concurr / 10, Integer.MAX_VALUE);
+		CowBufferPool.init(count * concurr / 10, Integer.MAX_VALUE);
+		
+		AxService axs = new AxService("AXS");
+		axs.startup(concurr);
 
-	private long loop(){
-		Context ctx = Context.getInstance();
-		ctx.startup();
-
-		Actor consumer = ctx.spawn();
+		Actor consumer = axs.spawn();
+		
 		List<ActorId> producers = new ArrayList<ActorId>(concurr);
 		for (int i=0; i<concurr; ++i){
-			ActorId aid = ctx.spawn(consumer, new AbstractHandler() {
+			final int index = i;
+			ActorId aid = axs.spawn(consumer, new AbstractHandler() {
 				@Override
 				public void run(Actor self){
-					Message msg = self.match("init").recv();
-					ActorId sender = msg.getSender();
+					Packet pkt = self.recv(Packet.NULL, "INIT");
+					ActorId consAid = pkt.getSender();
+					self.send(consAid, "READY");
+					self.recv(pkt, "START");
+					
 					for (int i=0; i<count; ++i){
-						self.send(sender);
+						self.send(consAid, "COUNT", index, i);
 					}
 				}
 			});
 			producers.add(aid);
 		}
 		
+		Packet pkt = new Packet();
+		int[] counts = new int[concurr];
+		for (ActorId aid : producers){
+			consumer.send(aid, "INIT");
+			consumer.recv(pkt, "READY");
+		}
+
 		long bt = System.currentTimeMillis();
 		for (ActorId aid : producers){
-			consumer.send(aid, "init");
+			consumer.send(aid, "START");
 		}
 		
-		long loop = count * concurr;
+		int loop = count * concurr;
 		for (int i=0; i<loop; ++i){
-			Message data = consumer.recv();
-			assertTrue(data != null);
+			consumer.recv(pkt);
+			int index = pkt.read();
+			int c = pkt.read();
+			assertTrue(counts[index] == c);
+			counts[index] = ++c;
 		}
 		
 		long eclipse = System.currentTimeMillis() - bt;
-		ctx.join();
-		return eclipse;
+		axs.shutdown();
+		
+		System.out.printf("Eclipse time: %d ms\n", eclipse);
 	}
 }

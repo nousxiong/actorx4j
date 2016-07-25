@@ -9,9 +9,11 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Context;
+import actorx.AxService;
 import actorx.AbstractHandler;
 import actorx.Message;
+import actorx.MessageGuard;
+import actorx.Packet;
 
 /**
  * @author Xiong
@@ -22,37 +24,45 @@ public class PingPong {
 	private static final int count = 10000;
 	@Test
 	public void test(){
-		Context ctx = Context.getInstance();
+		AxService ctx = new AxService("AXS");
 		ctx.startup();
 
-		Actor base = ctx.spawn();
-		ActorId aid = ctx.spawn(base, new AbstractHandler() {
+		Actor baseAx = ctx.spawn();
+		ActorId aid = ctx.spawn(baseAx, new AbstractHandler() {
 			@Override
 			public void run(Actor self){
 				while (true){
-					Message msg = self.match("pingpong","end").recv();
-					ActorId sender = msg.getSender();
-					self.send(sender, msg.getType());
-					if (msg.getType().equals("end")){
-						break;
+					try (MessageGuard guard = self.recv("PINGPONG", "END")){
+						Message msg = guard.get();
+						ActorId sender = msg.getSender();
+						String type = msg.getType();
+						self.send(sender, msg);
+						if ("END".equals(type)){
+							break;
+						}
+					}catch (Exception e){
+						e.printStackTrace();
 					}
 				}
 			}
 		});
 		
-		long bt =System.currentTimeMillis();
+		long bt = System.currentTimeMillis();
+		Packet pkt = new Packet();
 		for (int i=0; i<count; ++i){
-			base.send(aid, "pingpong");
-			base.match("pingpong").recv();
+			baseAx.send(aid, "PINGPONG", i);
+			baseAx.recv(pkt, "PINGPONG");
+			int echo = pkt.read();
+			assertTrue(echo == i);
 		}
-		base.send(aid, "end");
-		Message msg = base.match("end").recv();
-		assertTrue(msg.getSender().equals(aid));
+		baseAx.send(aid, "END");
+		baseAx.recv(pkt, "END");
+		assertTrue(pkt.getSender().equals(aid));
 		
 		long eclipse = System.currentTimeMillis() - bt;
 		System.out.printf("Eclipse time: %d ms\n", eclipse);
 		
-		ctx.join();
+		ctx.shutdown();
 	}
 
 }

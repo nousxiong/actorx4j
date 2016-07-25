@@ -7,13 +7,14 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import cque.MpscNodePool;
 import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Context;
+import actorx.AxService;
 import actorx.Message;
+import actorx.MessageGuard;
 import actorx.MessagePool;
+import actorx.Packet;
 
 /**
  * @author Xiong
@@ -26,36 +27,56 @@ public class MessagePoolBase {
 	
 	@Test
 	public void test(){
-		MessagePool.init(1000, Integer.MAX_VALUE);
-		Context ctx = Context.getInstance();
-		ctx.startup();
+		MessagePool.init(count * concurr, Integer.MAX_VALUE);
+		AxService ctx = new AxService("AXS");
+		ctx.startup(concurr);
 		
-		Actor base = ctx.spawn();
+		Actor baseAx = ctx.spawn();
 		ActorId[] producers = new ActorId[concurr];
 		for (int i=0; i<concurr; ++i){
-			producers[i] = ctx.spawn(base, new AbstractHandler() {
+			producers[i] = ctx.spawn(baseAx, new AbstractHandler() {
 				public void run(Actor self){
-					ActorId sender = self.match("init").recv().getSender();
-					MpscNodePool<Message> pool = MessagePool.getLocalPool();
-					for (int i=0; i<count; ++i){
-						Message msg = MessagePool.get(pool);
-						self.send(sender, msg, "test");
+					Packet pkt = self.recv(Packet.NULL, "INIT");
+					ActorId sender = pkt.getSender();
+					self.send(sender, "READY");
+					self.recv(pkt, "START");
+					
+					try (MessageGuard guard = self.makeMessage()){
+						Message msg = guard.get();
+						msg.setType("TEST");
+						for (int i=0; i<count; ++i){
+							self.send(sender, msg);
+						}
+					}catch (Exception e){
+						e.printStackTrace();
 					}
 				}
 			});
 		}
 		
 		for (ActorId aid : producers){
-			base.send(aid, "init");
+			baseAx.send(aid, "INIT");
+			baseAx.recv(Packet.NULL, "READY");
+		}
+
+		long bt = System.currentTimeMillis();
+		for (ActorId aid : producers){
+			baseAx.send(aid, "START");
 		}
 		
 		for (int i=0; i<concurr*count; ++i){
-			Message msg = base.recv();
-			assertTrue(msg.getType().equals("test"));
-			msg.release();
+			try (MessageGuard guard = baseAx.recv()){
+				Message msg = guard.get();
+				assertTrue(msg != null);
+				assertTrue("TEST".equals(msg.getType()));
+			}catch (Exception e){
+				e.printStackTrace();
+			}
 		}
+		long eclipse = System.currentTimeMillis() - bt;
+		System.out.printf("Eclipse time: %d ms\n", eclipse);
 		
-		ctx.join();
+		ctx.shutdown();
 	}
 
 }

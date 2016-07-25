@@ -36,8 +36,12 @@ public class PairPool{
 		assertTrue(pool.size() == 0);
 		PairLinkedQueue<Message> leftList = new PairLinkedQueue<Message>();
 		PairLinkedQueue<Message> rightList = new PairLinkedQueue<Message>();
-		PairLinkedNode<Message> leftNode = leftList.add(getNode(new Message(null, "left name")));
-		PairLinkedNode<Message> rightNode = rightList.add(getNode(new Message(null, "right name")));
+		Message msg1 = new Message();
+		msg1.setType("left name");
+		Message msg2 = new Message();
+		msg2.setType("right name");
+		PairLinkedNode<Message> leftNode = leftList.add(getNode(msg1));
+		PairLinkedNode<Message> rightNode = rightList.add(getNode(msg2));
 		assertTrue(pool.size() == 0);
 		
 		leftNode.pair = rightNode;

@@ -76,9 +76,10 @@ public class Mailbox {
 	}
 	
 	public void clear(){
-		totalList.clear();
-		for (PairLinkedQueue<Message> que : typedMap.values()){
-			que.clear();
+		while (!totalList.isEmpty()){
+			PairLinkedNode<Message> node = totalList.poll();
+			node.data.release();
+			node.release();
 		}
 		typedMap.clear();
 	}

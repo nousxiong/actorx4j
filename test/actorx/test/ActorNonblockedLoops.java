@@ -11,9 +11,11 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Context;
+import actorx.AxService;
 import actorx.AbstractHandler;
-import actorx.Message;
+import actorx.CowBufferPool;
+import actorx.MessagePool;
+import actorx.Packet;
 
 /**
  * @author Xiong
@@ -22,11 +24,13 @@ import actorx.Message;
 public class ActorNonblockedLoops {
 
 	private static final int concurr = Runtime.getRuntime().availableProcessors() * 1;
-	private static final long count = 100000;
-	private static final int testCount = 10;
+	private static final int count = 100000;
+	private static final int testCount = 1;
 	
 	@Test
 	public void test(){
+		MessagePool.init(count * concurr / 10, Integer.MAX_VALUE);
+		CowBufferPool.init(count * concurr / 10, Integer.MAX_VALUE);
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
 		for (int i=0; i<testCount - 1; ++i){
@@ -37,41 +41,50 @@ public class ActorNonblockedLoops {
 	}
 
 	private long loop(){
-		Context ctx = Context.getInstance();
-		ctx.startup();
+		AxService axs = new AxService("AXS");
+		axs.startup(concurr);
 
-		Actor consumer = ctx.spawn();
+		Actor consumer = axs.spawn();
+		
 		List<ActorId> producers = new ArrayList<ActorId>(concurr);
 		for (int i=0; i<concurr; ++i){
-			ActorId aid = ctx.spawn(consumer, new AbstractHandler() {
+			ActorId aid = axs.spawn(consumer, new AbstractHandler() {
 				@Override
 				public void run(Actor self){
-					Message msg = self.match("init").recv();
-					ActorId sender = msg.getSender();
+					Packet pkt = self.recv(Packet.NULL, "INIT");
+					ActorId consAid = pkt.getSender();
+					self.send(consAid, "READY");
+					self.recv(pkt, "START");
+					
 					for (int i=0; i<count; ++i){
-						self.send(sender);
+						self.send(consAid, "COUNT", i);
 					}
 				}
 			});
 			producers.add(aid);
 		}
 		
+		for (ActorId aid : producers){
+			consumer.send(aid, "INIT");
+			consumer.recv(Packet.NULL, "READY");
+		}
+
 		long bt = System.currentTimeMillis();
 		for (ActorId aid : producers){
-			consumer.send(aid, "init");
+			consumer.send(aid, "START");
 		}
 		
-		long loop = count * concurr;
+		Packet pkt = new Packet();
+		int loop = count * concurr;
 		while (true){
-			Message data = consumer.recv(0, TimeUnit.MILLISECONDS);
-			if (data != null){
+			if (consumer.recv(pkt, 0, TimeUnit.MILLISECONDS) != null){
 				if (--loop == 0){
 					break;
 				}
 			}
 		}
 		long eclipse = System.currentTimeMillis() - bt;
-		ctx.join();
+		axs.shutdown();
 		return eclipse;
 	}
 }

@@ -7,15 +7,20 @@ package actorx;
  * @author Xiong
  */
 public class ActorId {
-	/** 唯一id */
-	private final long id;
-	
-	/** Context的时间戳 */
+	// AxService id
+	private final long axid;
+	// 时间戳 
 	private final long timestamp;
+	// 唯一id
+	private final long id;
+	// 自增id
+	private final long sid;
 	
-	public ActorId(long id, long timestamp){
-		this.id = id;
+	public ActorId(long axid, long timestamp, long id, long sid){
+		this.axid = axid;
 		this.timestamp = timestamp;
+		this.id = id;
+		this.sid = sid;
 	}
 	
 	@Override
@@ -30,8 +35,10 @@ public class ActorId {
 		
 		ActorId rhs = (ActorId)o;
 		return 
+			this.getAxid() == rhs.getAxid() && 
+			this.getTimestamp() == rhs.getTimestamp() && 
 			this.getId() == rhs.getId() && 
-			this.getTimestamp() == rhs.getTimestamp();
+			this.getSid() == rhs.getSid();
 	}
 	
 	/**
@@ -50,9 +57,19 @@ public class ActorId {
 	@Override
 	public int hashCode() {
 		int result = 17;
-		result = 37 * result + (int) (id ^ (id >>> 32));
+		result = 37 * result + (int) (axid ^ (axid >>> 32));
 		result = 37 * result + (int) (timestamp ^ (timestamp >>> 32));
+		result = 37 * result + (int) (id ^ (id >>> 32));
+		result = 37 * result + (int) (sid ^ (sid >>> 32));
 		return result;
+	}
+
+	public long getAxid() {
+		return axid;
+	}
+
+	public long getSid() {
+		return sid;
 	}
 
 	public long getId() {
