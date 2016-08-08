@@ -6,15 +6,7 @@ package actorx;
 /**
  * @author Xiong
  */
-public class ActorId {
-	// AxService id
-	private final long axid;
-	// 时间戳 
-	private final long timestamp;
-	// 唯一id
-	private final long id;
-	// 自增id
-	private final long sid;
+public class ActorId extends actorx.adl.ActorId {
 	
 	public ActorId(long axid, long timestamp, long id, long sid){
 		this.axid = axid;

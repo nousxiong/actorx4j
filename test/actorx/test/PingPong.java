@@ -52,7 +52,7 @@ public class PingPong {
 		for (int i=0; i<count; ++i){
 			baseAx.send(aid, "PINGPONG", i);
 			baseAx.recv(pkt, "PINGPONG");
-			int echo = pkt.read();
+			int echo = pkt.getInt();
 			assertTrue(echo == i);
 		}
 		baseAx.send(aid, "END");

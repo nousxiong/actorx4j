@@ -7,14 +7,14 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.Test;
 
 import actorx.AbstractHandler;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.AxService;
-import actorx.CowBufferPool;
+import actorx.Message;
+import actorx.MessageGuard;
 import actorx.MessagePool;
 import actorx.Packet;
 
@@ -30,8 +30,7 @@ public class ActorLoops {
 	@Test
 	public void test() {
 		System.out.println("Concurrent count: "+concurr);
-		MessagePool.init(count * concurr / 10, Integer.MAX_VALUE);
-		CowBufferPool.init(count * concurr / 10, Integer.MAX_VALUE);
+		MessagePool.init(count * concurr, Integer.MAX_VALUE);
 		
 		AxService axs = new AxService("AXS");
 		axs.startup(concurr);
@@ -43,7 +42,7 @@ public class ActorLoops {
 			final int index = i;
 			ActorId aid = axs.spawn(consumer, new AbstractHandler() {
 				@Override
-				public void run(Actor self){
+				public void run(Actor self) throws Exception{
 					Packet pkt = self.recv(Packet.NULL, "INIT");
 					ActorId consAid = pkt.getSender();
 					self.send(consAid, "READY");
@@ -71,13 +70,17 @@ public class ActorLoops {
 		
 		int loop = count * concurr;
 		for (int i=0; i<loop; ++i){
-			consumer.recv(pkt);
-			int index = pkt.read();
-			int c = pkt.read();
-			assertTrue(counts[index] == c);
-			counts[index] = ++c;
+			try (MessageGuard guard = consumer.recv()){
+				Message msg = guard.get();
+				int index = msg.getInt();
+				int c = msg.getInt();
+				assertTrue(counts[index] == c);
+				counts[index] = ++c;
+			}catch (Exception e){
+				e.printStackTrace();
+			}
 		}
-		
+	
 		long eclipse = System.currentTimeMillis() - bt;
 		axs.shutdown();
 		

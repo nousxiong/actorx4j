@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import actorx.Actor;
+import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.AxService;
 import actorx.ExitType;
@@ -34,7 +35,7 @@ public class ActorBase {
 		Actor baseAx = axs.spawn();
 		ActorId aid = axs.spawn(baseAx, new AbstractHandler() {
 			@Override
-			public void run(Actor self){
+			public void run(Actor self) throws Exception{
 				Packet pkt = self.recv(Packet.NULL, "INIT");
 				ActorId baseAid = pkt.getSender();
 				
@@ -51,7 +52,7 @@ public class ActorBase {
 							continue;
 						}
 						
-						String str = msg.read();
+						String str = msg.getString();
 						if ("end".equals(str)){
 							System.out.println("Recv<"+str+">");
 							break;
@@ -61,6 +62,9 @@ public class ActorBase {
 					}
 				}
 				self.send(baseAid, "OK", "Bye!");
+				
+				// 测试异常退出
+				throw new Exception("test");
 			}
 		}, 
 		LinkType.MONITORED
@@ -74,11 +78,13 @@ public class ActorBase {
 		
 		Packet pkt = baseAx.recv(Packet.NULL, "OK");
 		assertTrue(pkt.getSender().equals(aid));
-		String reply = pkt.read();
+		String reply = pkt.getString();
 		assertTrue("Bye!".equals(reply));
 		
-		assertTrue(baseAx.recvExit() == ExitType.NORMAL);
-		
+		ActorExit aex = baseAx.recvExit();
+		assertTrue(aex.getType() == ExitType.EXCEPT);
+		System.out.println(aex.getErrmsg());
+	
 		axs.shutdown();
 	}
 }

@@ -13,7 +13,8 @@ import actorx.Actor;
 import actorx.ActorId;
 import actorx.AxService;
 import actorx.AbstractHandler;
-import actorx.CowBufferPool;
+import actorx.Message;
+import actorx.MessageGuard;
 import actorx.MessagePool;
 import actorx.Packet;
 
@@ -29,8 +30,7 @@ public class ActorNonblockedLoops {
 	
 	@Test
 	public void test(){
-		MessagePool.init(count * concurr / 10, Integer.MAX_VALUE);
-		CowBufferPool.init(count * concurr / 10, Integer.MAX_VALUE);
+		MessagePool.init(count * concurr, Integer.MAX_VALUE);
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
 		for (int i=0; i<testCount - 1; ++i){
@@ -74,13 +74,17 @@ public class ActorNonblockedLoops {
 			consumer.send(aid, "START");
 		}
 		
-		Packet pkt = new Packet();
 		int loop = count * concurr;
 		while (true){
-			if (consumer.recv(pkt, 0, TimeUnit.MILLISECONDS) != null){
-				if (--loop == 0){
-					break;
+			try (MessageGuard guard = consumer.recv(0, TimeUnit.MILLISECONDS)){
+				Message msg = guard.get();
+				if (msg != null){
+					if (--loop == 0){
+						break;
+					}
 				}
+			}catch (Exception e){
+				e.printStackTrace();
 			}
 		}
 		long eclipse = System.currentTimeMillis() - bt;

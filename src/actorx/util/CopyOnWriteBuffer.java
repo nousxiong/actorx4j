@@ -3,6 +3,7 @@
  */
 package actorx.util;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import actorx.CowBufferPool;
@@ -14,10 +15,12 @@ import cque.INode;
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
 public class CopyOnWriteBuffer implements INode {
-	private static final int DEFAULT_BUFFER_SIZE = 64;
-	private byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
-	private int size = 0;
+	private ByteBuffer buffer;
 	private AtomicInteger refCount = new AtomicInteger(0);
+	
+	public CopyOnWriteBuffer(int capacity){
+		this.buffer = ByteBuffer.allocate(capacity);
+	}
 	
 	/**
 	 * 创建新buffer，数据从自身拷贝，decr自身引用计数
@@ -25,43 +28,18 @@ public class CopyOnWriteBuffer implements INode {
 	 * @return
 	 */
 	public CopyOnWriteBuffer copyOnWrite(){
-		CopyOnWriteBuffer cowBuffer = CowBufferPool.get();
-		cowBuffer.write(buffer, 0, size);
+		CopyOnWriteBuffer cowBuffer = CowBufferPool.get(buffer.capacity());
+		cowBuffer.buffer.put(buffer.array(), 0, buffer.position());
 		decrRef();
 		return cowBuffer;
 	}
 	
 	/**
-	 * 将自己的buffer转移出去，如果有共享，写时拷贝buffer
+	 * 复制一个ByteBuffer，共享内部byte[]
 	 * @return
 	 */
-	public byte[] moveOrCopy(){
-		byte[] buffer = null;
-		if (getRefCount() > 1){
-			buffer = new byte[size];
-			System.arraycopy(this.buffer, 0, buffer, 0, size);
-		}else{
-			buffer = this.buffer;
-			this.buffer = new byte[DEFAULT_BUFFER_SIZE];
-			size = 0;
-		}
-		return buffer;
-	}
-
-	/**
-	 * 当前size
-	 * @return
-	 */
-	public int size(){
-		return size;
-	}
-	
-	/**
-	 * 获取当前buffer的容量
-	 * @return
-	 */
-	public int getCapacity(){
-		return buffer.length;
+	public ByteBuffer duplicateBuffer(){
+		return buffer.duplicate();
 	}
 	
 	/**
@@ -73,106 +51,29 @@ public class CopyOnWriteBuffer implements INode {
 	}
 	
 	/**
-	 * 向buffer中写入数据
-	 * @param bytes
-	 * @return 实际写入的长度
-	 */
-	public int write(byte[] bytes){
-		return write(bytes, 0, bytes.length);
-	}
-	
-	/**
-	 * 向buffer中写入数据
-	 * @param src
-	 * @param srcPos
+	 * 扩展Length长度的数据，如果剩余长度不足，会尝试扩展buffer
 	 * @param length
-	 * @return 实际写入的长度
+	 * @return 如果未扩展返回自身，如果扩展了，返回新写时拷贝buffer
 	 */
-	public int write(byte[] src, int srcPos, int length){
-		if (srcPos >= src.length || length == 0){
-			return 0;
-		}
-		
-		int remainLength = src.length - srcPos;
-		int writeLength = remainLength > length ? length : remainLength;
-		if (buffer.length - size < writeLength){
-			byte[] newBuffer = new byte[buffer.length + writeLength];
-			System.arraycopy(buffer, 0, newBuffer, 0, size);
-			buffer = newBuffer;
-		}
-		
-		System.arraycopy(src, srcPos, buffer, size, writeLength);
-		size += writeLength;
-		return writeLength;
-	}
-	
-	/**
-	 * 略过写
-	 * @param length
-	 */
-	public int skipWrite(int length){
+	public CopyOnWriteBuffer reserve(int length){
 		if (length == 0){
-			return 0;
+			return this;
 		}
 		
-		if (buffer.length - size < length){
-			byte[] newBuffer = new byte[buffer.length + length];
-			System.arraycopy(buffer, 0, newBuffer, 0, size);
-			buffer = newBuffer;
-		}
-		size += length;
-		return length;
-	}
-	
-	/**
-	 * 读取指定偏移量和长度的数据到指定的byte数组中
-	 * @param dest
-	 * @param offset
-	 * @return 实际读取的长度
-	 */
-	public int read(byte[] dest, int offset){
-		return read(dest, 0, offset, dest.length);
-	}
-	
-	/**
-	 * 读取指定偏移量和长度的数据到指定的byte数组中
-	 * @param dest
-	 * @param destPos
-	 * @param offset
-	 * @param length
-	 * @return 实际读取的长度
-	 */
-	public int read(byte[] dest, int destPos, int offset, int length){
-		if (destPos >= dest.length || length == 0){
-			return 0;
+		if (buffer.remaining() >= length){
+			return this;
 		}
 		
-		if (size - offset < length){
-			length = size - offset;
-		}
-		
-		System.arraycopy(buffer, offset, dest, destPos, length);
-		return length;
-	}
-	
-	/**
-	 * 略过读
-	 * @param offset
-	 * @param length
-	 * @return 实际读取的长度
-	 */
-	public int skipRead(int offset, int length){
-		if (size - offset < length){
-			length = size - offset;
-		}
-		return length;
+		CopyOnWriteBuffer newBuffer = CowBufferPool.get(buffer.capacity() + length);
+		newBuffer.getBuffer().put(buffer.array(), 0, buffer.position());
+		return newBuffer;
 	}
 	
 	/**
 	 * 获取当前buffer
 	 * @return
 	 */
-	public byte[] getBuffer(){
+	public ByteBuffer getBuffer(){
 		return buffer;
 	}
 	
@@ -226,7 +127,7 @@ public class CopyOnWriteBuffer implements INode {
 	public void onFree(){
 		next = null;
 		freer = null;
-		size = 0;
+		buffer.clear();
 	}
 
 	@Override

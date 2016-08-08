@@ -56,27 +56,24 @@ public class MessageBase {
 		assertTrue(!dat1.equals(dat2));
 		
 		Message msg1 = Message.make();
-		msg1.write(dat1);
-		msg1.write(str1);
+		msg1.put(dat1);
+		msg1.put(str1);
 		
 		Message msg2 = Message.make(msg1);
-		Data dat = msg2.read();
+		Data dat = msg2.getRaw();
 		assertTrue(dat1.equals(dat));
 		
-		msg2.write(dat2);
-		String str = msg2.read();
+		msg2.put(dat2);
+		String str = msg2.getString();
 		assertTrue(str1.equals(str));
 		
-		dat = msg2.read();
+		dat = msg2.getRaw();
 		assertTrue(dat2.equals(dat));
 		
-		dat = msg1.read();
+		dat = msg1.getRaw();
 		assertTrue(dat1.equals(dat));
-		str = msg1.read();
+		str = msg1.getString();
 		assertTrue(str1.equals(str));
-		
-		assertTrue(msg1.read() == null);
-		assertTrue(msg2.read() == null);
 	}
 
 }

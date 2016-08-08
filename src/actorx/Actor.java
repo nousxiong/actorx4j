@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import actorx.util.CopyOnWriteBuffer;
+import actorx.util.Mailbox;
 import actorx.util.MessageGuardFactory;
 import cque.IntrusiveMpscQueue;
 import cque.MpscNodePool;
@@ -66,7 +67,7 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard makeMessage(){
-		return returnMessage(makeMessage(null));
+		return returnMessage(makeNewMessage());
 	}
 	
 	/**
@@ -89,13 +90,13 @@ public class Actor {
 	 * @param type 可以为null
 	 * @param arg 不可为null
 	 */
-	public void send(ActorId aid, String type, Object arg){
+	public <A> void send(ActorId aid, String type, A arg){
 		assert !isQuited();
 		assert aid != null;
 		assert arg != null;
 		
-		Message msg = makeMessage(null);
-		msg.write(arg);
+		Message msg = makeNewMessage();
+		msg.put(arg);
 		if (!sendMessage(axs, selfAid, aid, type, msg)){
 			msg.release();
 		}
@@ -108,13 +109,34 @@ public class Actor {
 	 * @param arg1 不可为null
 	 * @param arg2 不可为null
 	 */
-	public void send(ActorId aid, String type, Object arg1, Object arg2){
+	public <A1, A2> void send(ActorId aid, String type, A1 arg1, A2 arg2){
 		assert !isQuited();
 		assert aid != null;
 		
-		Message msg = makeMessage(null);
-		msg.write(arg1);
-		msg.write(arg2);
+		Message msg = makeNewMessage();
+		msg.put(arg1);
+		msg.put(arg2);
+		if (!sendMessage(axs, selfAid, aid, type, msg)){
+			msg.release();
+		}
+	}
+	
+	/**
+	 * 发送消息
+	 * @param aid
+	 * @param type 可以为null
+	 * @param arg1 不可为null
+	 * @param arg2 不可为null
+	 * @param arg3 不可为null
+	 */
+	public <A1, A2, A3> void send(ActorId aid, String type, A1 arg1, A2 arg2, A3 arg3){
+		assert !isQuited();
+		assert aid != null;
+		
+		Message msg = makeNewMessage();
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
 		if (!sendMessage(axs, selfAid, aid, type, msg)){
 			msg.release();
 		}
@@ -136,7 +158,7 @@ public class Actor {
 		}else{
 			msg = makeMessage(null);
 			for (Object arg : args){
-				msg.write(arg);
+				msg.put(arg);
 			}
 		}
 		
@@ -339,15 +361,15 @@ public class Actor {
 	///------------------------------------------------------------------------
 	/// 接收axExit消息
 	///------------------------------------------------------------------------
-	public ExitType recvExit(){
+	public ActorExit recvExit(){
 		return recvExit(Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
-	public ExitType recvExit(long timeout){
+	public ActorExit recvExit(long timeout){
 		return recvExit(timeout, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
-	public ExitType recvExit(long timeout, TimeUnit timeUnit){
+	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
 		matchedTypes.clear();
 		matchedTypes.add(MsgType.EXIT);
 		try (MessageGuard guard = recv(matchedTypes, timeout, timeUnit)){
@@ -356,7 +378,7 @@ public class Actor {
 				return null;
 			}
 			
-			return msg.read();
+			return msg.get(ActorExit.class);
 		}catch (Exception e){
 			return null;
 		}
@@ -376,7 +398,7 @@ public class Actor {
 	 * 正常退出
 	 */
 	public void quit(){
-		quit(ExitType.NORMAL, "no error");
+		quit(new ActorExit(ExitType.NORMAL, "no error"));
 	}
 
 	/**
@@ -384,25 +406,16 @@ public class Actor {
 	 * @param et
 	 * @param errmsg
 	 */
-	public void quit(ExitType et, String errmsg){
-		if (isQuited()){
+	public void quit(ActorExit aex){
+		if (!axs.removeActor(selfAid)){
 			return;
 		}
 
-		axs.removeActor(selfAid);
-
 		// 发送退出消息给所有链接的Actor
 		if (!linkList.isEmpty()){
-			Message exitMsg = makeMessage(null);
-			exitMsg.setSender(selfAid);
-			exitMsg.setType(MsgType.EXIT);
-			exitMsg.write(et);
-			exitMsg.write(errmsg);
-			
 			for (ActorId aid : linkList){
-				send(aid, exitMsg);
+				send(aid, MsgType.EXIT, aex);
 			}
-			exitMsg.release();
 		}
 		
 		quited = true;
@@ -561,6 +574,14 @@ public class Actor {
 	private MessageGuard returnMessage(Message msg){
 		matchedTypes.clear();
 		return msgGuardPool.get().wrap(msg);
+	}
+	
+	private Message makeNewMessage(){
+		if (handler){
+			return Message.make(msgPool, cowBufferPool);
+		}else{
+			return Message.make();
+		}
 	}
 	
 	private Message makeMessage(Message src){

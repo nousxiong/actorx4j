@@ -24,8 +24,10 @@ public class MessageGuard implements AutoCloseable, INode {
 	
 	@Override
 	public void close() throws Exception {
-		msg.release();
-		msg = null;
+		if (msg != null){
+			msg.release();
+			msg = null;
+		}
 		release();
 	}
 

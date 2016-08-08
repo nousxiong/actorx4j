@@ -1,16 +1,14 @@
 /**
  * 
  */
-package actorx;
+package actorx.util;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import cque.NodePool;
-import actorx.util.MessagePairPool;
-import actorx.util.PairLinkedNode;
-import actorx.util.PairLinkedQueue;
+import actorx.Message;
 
 /**
  * @author Xiong

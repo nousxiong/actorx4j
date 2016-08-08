@@ -146,19 +146,20 @@ public class AxService {
 		return actorMap.get(aid);
 	}
 	
-	public void removeActor(ActorId aid){
-		actorMap.remove(aid);
+	public boolean removeActor(ActorId aid){
+		return actorMap.remove(aid) != null;
 	}
 	
 	private ActorId generateActorId(){
 		int index = this.currentIdBase;
 		long incr = actorIdBases[index].incrementAndGet();
+		long id = incr * 100 + index;
+		
 		++index;
 		if (index >= actorIdBases.length){
 			index = 0;
 		}
-		
-		long id = incr * 100 + index;
+		this.currentIdBase = index;
 		return new ActorId(axid, timestamp, id, id);
 	}
 	
