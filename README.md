@@ -9,7 +9,8 @@ Add dist and lib's jars into your java project
 Dependencies
 --------
 
-https://github.com/nousxiong/cque4j 
+https://github.com/nousxiong/cque4j
+
 https://github.com/lordoffox/adata
 
 
