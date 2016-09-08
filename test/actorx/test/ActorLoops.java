@@ -30,7 +30,7 @@ public class ActorLoops {
 	@Test
 	public void test() {
 		System.out.println("Concurrent count: "+concurr);
-		MessagePool.init(count * concurr, Integer.MAX_VALUE);
+		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		
 		AxService axs = new AxService("AXS");
 		axs.startup(concurr);

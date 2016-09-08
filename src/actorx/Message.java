@@ -3,11 +3,8 @@
  */
 package actorx;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
 import actorx.util.CopyOnWriteBuffer;
+import actorx.util.IMail;
 import actorx.util.Pack;
 import adata.Base;
 import adata.Stream;
@@ -18,33 +15,29 @@ import cque.MpscNodePool;
 /**
  * @author Xiong
  */
-public class Message extends Pack implements INode {
+public class Message extends Pack implements INode, IMail {
+	// 空消息
+	public static final Message NULLMSG = new Message();
+	
 	private CopyOnWriteBuffer cowBuffer;
-	// 读取时使用的buffer，如果共享cowBuffer，则用ByteBuffer.duplicate来避免并发读带来的pos错误
-	private ByteBuffer readBuffer;
 	// 当前未序列化过的参数的索引
 	private int writeIndex;
 	
 	/**
-	 * 创建一个全新的消息对象，包括内部的写时拷贝Buffer
+	 * 创建一个全新的消息对象
 	 * @return
 	 */
 	public static Message make(){
-		return make(MessagePool.getLocalPool(), CowBufferPool.getLocalPool());
+		return make(MessagePool.getLocalPool());
 	}
 	
 	/**
 	 * 使用用户保存的本地池来创建消息
 	 * @param msgPool
-	 * @param cowBufferPool
 	 * @return
 	 */
-	public static Message make(MpscNodePool<Message> msgPool, MpscNodePool<CopyOnWriteBuffer> cowBufferPool){
-		Message msg = MessagePool.get(msgPool);
-		if (msg.args == null){
-			msg.args = new ArrayList<Object>();
-		}
-		return msg;
+	public static Message make(MpscNodePool<Message> msgPool){
+		return MessagePool.get(msgPool);
 	}
 	
 	/**
@@ -64,13 +57,12 @@ public class Message extends Pack implements INode {
 	 * @return
 	 */
 	public static Message make(Message src, MpscNodePool<Message> msgPool){
-		Message msg = makeEmpty(msgPool);
+		Message msg = make(msgPool);
 		msg.sender = src.sender;
 		msg.type = src.type;
 		
-		if (src.args != null && !src.args.isEmpty() && src.cowBuffer == null){
+		if (!src.argsIsEmpty() && src.cowBuffer == null){
 			src.cowBuffer = CowBufferPool.get();
-			src.readBuffer = src.cowBuffer.getBuffer();
 		}
 		
 		if (src.cowBuffer != null){
@@ -79,34 +71,13 @@ public class Message extends Pack implements INode {
 			src.writeArgs();
 			src.cowBuffer.incrRef();
 			msg.cowBuffer = src.cowBuffer;
-			if (src.readBuffer == src.cowBuffer.getBuffer()){
-				src.readBuffer = src.cowBuffer.duplicateBuffer();
-			}
-			msg.readBuffer = msg.cowBuffer.duplicateBuffer();
 		}
 		
 		msg.writeIndex = src.writeIndex;
-		if (src.args != null && !src.args.isEmpty()){
-			msg.args = src.makeCopyArgs();
+		if (!src.argsIsEmpty()){
+			msg.argsCopyFrom(src);
 		}
 		return msg;
-	}
-	
-	/**
-	 * 创建一个空消息（无写时拷贝Buffer）
-	 * @return
-	 */
-	public static Message makeEmpty(){
-		return makeEmpty(MessagePool.getLocalPool());
-	}
-	
-	/**
-	 * 使用用户保存的本地池来创建消息
-	 * @param msgPool
-	 * @return
-	 */
-	public static Message makeEmpty(MpscNodePool<Message> msgPool){
-		return MessagePool.get(msgPool);
 	}
 	
 	public void setSender(ActorId sender){
@@ -126,7 +97,7 @@ public class Message extends Pack implements INode {
 	 */
 	public <T> Message put(T t){
 		copyOnWrite();
-		args.add(t);
+		argsAdd(t);
 		return this;
 	}
 	
@@ -138,7 +109,7 @@ public class Message extends Pack implements INode {
 	 * @return
 	 */
 	public <T extends Base> T get(T t){
-		return super.get(readBuffer, t);
+		return super.get(cowBuffer, t);
 	}
 	
 	/**
@@ -147,39 +118,39 @@ public class Message extends Pack implements INode {
 	 * @return
 	 */
 	public <T extends Base> T get(Class<T> c){
-		return super.get(readBuffer, c);
+		return super.get(cowBuffer, c);
 	}
 	
 	public byte getByte(){
-		return super.getByte(readBuffer);
+		return super.getByte(cowBuffer);
 	}
 	
 	public boolean getBool(){
-		return super.getBool(readBuffer);
+		return super.getBool(cowBuffer);
 	}
 	
 	public short getShort(){
-		return super.getShort(readBuffer);
+		return super.getShort(cowBuffer);
 	}
 	
 	public int getInt(){
-		return super.getInt(readBuffer);
+		return super.getInt(cowBuffer);
 	}
 	
 	public long getLong(){
-		return super.getLong(readBuffer);
+		return super.getLong(cowBuffer);
 	}
 	
 	public float getFloat(){
-		return super.getFloat(readBuffer);
+		return super.getFloat(cowBuffer);
 	}
 	
 	public double getDouble(){
-		return super.getDouble(readBuffer);
+		return super.getDouble(cowBuffer);
 	}
 	
 	public String getString(){
-		return super.getString(readBuffer);
+		return super.getString(cowBuffer);
 	}
 	
 	///------------------------------------------------------------------------
@@ -196,25 +167,12 @@ public class Message extends Pack implements INode {
 			buffer = cowBuffer;
 			cowBuffer = null;
 		}
-		readBuffer = null;
 		
 		if (pkt == null){
 			pkt = new Packet();
 		}
-		pkt.set(sender, type, buffer, args);
+		pkt.set(this, buffer);
 		return pkt;
-	}
-	
-	/**
-	 * 创建args的副本
-	 * @return
-	 */
-	private List<Object> makeCopyArgs(){
-		if (args == null){
-			return null;
-		}
-		
-		return new ArrayList<Object>(args);
 	}
 	
 	private void copyOnWrite(){
@@ -223,16 +181,8 @@ public class Message extends Pack implements INode {
 				// 写时拷贝，重新创建一个新buffer，拷贝旧数据，decr旧buffer引用计数
 				cowBuffer = cowBuffer.copyOnWrite();
 			}
-			// 包括args的拷贝
-			args = makeCopyArgs();
 			// 将能序列化的对象序列化
 			writeArgs();
-			// 设置读取buffer
-			readBuffer = cowBuffer.getBuffer();
-		}
-		
-		if (args == null){
-			args = new ArrayList<Object>();
 		}
 	}
 	
@@ -240,7 +190,6 @@ public class Message extends Pack implements INode {
 		int length = argsLength();
 		CopyOnWriteBuffer newBuffer = cowBuffer.reserve(length);
 		if (newBuffer != cowBuffer){
-			readBuffer = newBuffer.getBuffer();
 			cowBuffer.decrRef();
 			cowBuffer = newBuffer;
 			return true;
@@ -254,13 +203,9 @@ public class Message extends Pack implements INode {
 	 * @return
 	 */
 	private int argsLength(){
-		if (args == null){
-			return 0;
-		}
-		
 		int length = 0;
-		for (int i=writeIndex; i<args.size(); ++i){
-			Object arg = args.get(i);
+		for (int i=writeIndex; i<argsSize(); ++i){
+			Object arg = argsGet(i);
 			if (arg != null){
 				if (arg instanceof Base){
 					length += ((Base) arg).sizeOf();
@@ -288,14 +233,10 @@ public class Message extends Pack implements INode {
 	}
 	
 	private void writeArgs(){
-		if (args == null){
-			return;
-		}
-		
-		for (int i=writeIndex; i<args.size(); ++i, ++writeIndex){
-			Object arg = args.get(i);
+		for (int i=writeIndex; i<argsSize(); ++i, ++writeIndex){
+			Object arg = argsGet(i);
 			if (writeArg(arg)){
-				args.set(i, null);
+				argsSet(i, null);
 			}
 		}
 	}
@@ -308,46 +249,42 @@ public class Message extends Pack implements INode {
 		Stream stream = getStream();
 		boolean isAdata = true;
 		try{
-			ByteBuffer buffer = cowBuffer.getBuffer();
+			byte[] buffer = cowBuffer.getBuffer();
+			int size = cowBuffer.size();
+			stream.clearWrite();
+			stream.setWriteBuffer(buffer);
+			stream.skipWrite(size);
 			if (arg instanceof Base){
 				Base o = (Base) arg;
-				stream.setWriteBuffer(buffer);
 				o.write(stream);
 			}else if (arg instanceof Byte){
 				Byte o = (Byte) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeInt8(o);
 			}else if (arg instanceof Boolean){
 				Byte o = (byte) ((boolean) arg ? 1 : 0);
-				stream.setWriteBuffer(buffer);
 				stream.writeInt8(o);
 			}else if (arg instanceof Short){
 				Short o = (Short) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeInt16(o);
 			}else if (arg instanceof Integer){
 				Integer o = (Integer) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeInt32(o);
 			}else if (arg instanceof Long){
 				Long o = (Long) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeInt64(o);
 			}else if (arg instanceof Float){
 				Float o = (Float) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeFloat(o);
 			}else if (arg instanceof Double){
 				Double o = (Double) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeDouble(o);
 			}else if (arg instanceof String){
 				String o = (String) arg;
-				stream.setWriteBuffer(buffer);
 				stream.writeString(o);
 			}else{
 				isAdata = false;
 			}
+			cowBuffer.write(stream.writeLength() - size);
 		}finally{
 			stream.setWriteBuffer(null);
 		}
@@ -367,7 +304,6 @@ public class Message extends Pack implements INode {
 				cowBuffer = null;
 			}
 			freer.free(this);
-			freer = null;
 		}
 	}
 
@@ -386,21 +322,176 @@ public class Message extends Pack implements INode {
 	@Override
 	public void onFree(){
 		super.clear();
-		readBuffer = null;
 		writeIndex = 0;
 		next = null;
 		freer = null;
+		
+		totalNext = null;
+		totalPrev = null;
+		typeNext = null;
+		typePrev = null;
+		typeSameNext = null;
+		typeSamePrev = null;
+
+		senderTotalNext = null;
+		senderTotalPrev = null;
+		senderTypeNext = null;
+		senderTypePrev = null;
+		senderTypeSameNext = null;
+		senderTypeSamePrev = null;
 	}
 
 	@Override
 	public void onGet(IFreer freer){
 		this.freer = freer;
 		this.next = null;
+		this.sender = ActorId.NULLAID;
 		this.type = MsgType.NULLTYPE;
 	}
 
 	@Override
 	public void setNext(INode next){
 		this.next = next;
+	}
+
+	
+	/** 以下实现IMail接口 */
+	private IMail totalNext;
+	private IMail totalPrev;
+	private IMail typeNext;
+	private IMail typePrev;
+	private IMail typeSameNext;
+	private IMail typeSamePrev;
+
+	private IMail senderTotalNext;
+	private IMail senderTotalPrev;
+	private IMail senderTypeNext;
+	private IMail senderTypePrev;
+	private IMail senderTypeSameNext;
+	private IMail senderTypeSamePrev;
+	
+	@Override
+	public void setTotalNext(IMail next) {
+		totalNext = next;
+	}
+
+	@Override
+	public IMail getTotalNext() {
+		return totalNext;
+	}
+
+	@Override
+	public void setTotalPrev(IMail prev) {
+		totalPrev = prev;
+	}
+
+	@Override
+	public IMail getTotalPrev() {
+		return totalPrev;
+	}
+
+	@Override
+	public void setTypeNext(IMail next) {
+		typeNext = next;
+	}
+
+	@Override
+	public IMail getTypeNext() {
+		return typeNext;
+	}
+
+	@Override
+	public void setTypePrev(IMail prev) {
+		typePrev = prev;
+	}
+
+	@Override
+	public IMail getTypePrev() {
+		return typePrev;
+	}
+
+	@Override
+	public void setTypeSameNext(IMail next) {
+		typeSameNext = next;
+	}
+
+	@Override
+	public IMail getTypeSameNext() {
+		return typeSameNext;
+	}
+
+	@Override
+	public void setTypeSamePrev(IMail prev) {
+		typeSamePrev = prev;
+	}
+
+	@Override
+	public IMail getTypeSamePrev() {
+		return typeSamePrev;
+	}
+
+	@Override
+	public void onClear() {
+		this.release();
+	}
+
+	@Override
+	public void setSenderTotalNext(IMail next) {
+		senderTotalNext = next;
+	}
+
+	@Override
+	public IMail getSenderTotalNext() {
+		return senderTotalNext;
+	}
+
+	@Override
+	public void setSenderTotalPrev(IMail prev) {
+		senderTotalPrev = prev;
+	}
+
+	@Override
+	public IMail getSenderTotalPrev() {
+		return senderTotalPrev;
+	}
+
+	@Override
+	public void setSenderTypeNext(IMail next) {
+		senderTypeNext = next;
+	}
+
+	@Override
+	public IMail getSenderTypeNext() {
+		return senderTypeNext;
+	}
+
+	@Override
+	public void setSenderTypePrev(IMail prev) {
+		senderTypePrev = prev;
+	}
+
+	@Override
+	public IMail getSenderTypePrev() {
+		return senderTypePrev;
+	}
+
+	@Override
+	public void setSenderTypeSameNext(IMail next) {
+		senderTypeSameNext = next;
+	}
+
+	@Override
+	public IMail getSenderTypeSameNext() {
+		return senderTypeSameNext;
+	}
+
+	@Override
+	public void setSenderTypeSamePrev(IMail prev) {
+		senderTypeSamePrev = prev;
+	}
+
+	@Override
+	public IMail getSenderTypeSamePrev() {
+		return senderTypeSamePrev;
 	}
 }

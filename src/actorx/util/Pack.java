@@ -3,10 +3,11 @@
  */
 package actorx.util;
 
-import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import actorx.ActorId;
+import actorx.MsgType;
 import adata.Base;
 import adata.Stream;
 
@@ -15,13 +16,12 @@ import adata.Stream;
  * 包
  */
 public abstract class Pack {
-	protected ActorId sender;
-	protected String type;
+	protected ActorId sender = ActorId.NULLAID;
+	protected String type = MsgType.NULLTYPE;
 	// 当前未读过的序列化的字节位置
 	protected int readPos;
 	// 当前未读过的参数的索引
 	protected int readIndex;
-	protected List<Object> args;
 	private static ThreadLocal<Stream> streamTLS = new ThreadLocal<Stream>();
 	
 	public ActorId getSender(){
@@ -37,9 +37,7 @@ public abstract class Pack {
 		type = null;
 		readPos = 0;
 		readIndex = 0;
-		if (args != null){
-			args.clear();
-		}
+		argsClear();
 	}
 	
 	public <T> T getRaw(){
@@ -55,26 +53,27 @@ public abstract class Pack {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected <T extends Base> T get(ByteBuffer buffer, T t){
+	protected <T extends Base> T get(CopyOnWriteBuffer cowBuffer, T t){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		((Base) t).read(stream);
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return t;
 	}
 		
-	protected <T extends Base> T get(ByteBuffer buffer, Class<T> c){
+	protected <T extends Base> T get(CopyOnWriteBuffer cowBuffer, Class<T> c){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		T t = null;
 		try{
 			t = c.newInstance();
@@ -83,122 +82,121 @@ public abstract class Pack {
 		}
 		
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		t.read(stream);
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return t;
 	}
 	
-	protected byte getByte(ByteBuffer buffer){
+	protected byte getByte(CopyOnWriteBuffer cowBuffer){
 		Byte arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		byte o = stream.readInt8();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected boolean getBool(ByteBuffer buffer){
+	protected boolean getBool(CopyOnWriteBuffer cowBuffer){
 		Boolean arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		byte o = stream.readInt8();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o != 0;
 	}
 	
-	protected short getShort(ByteBuffer buffer){
+	protected short getShort(CopyOnWriteBuffer cowBuffer){
 		Short arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		short o = stream.readInt16();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected int getInt(ByteBuffer buffer){
+	protected int getInt(CopyOnWriteBuffer cowBuffer){
 		Integer arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		int o = stream.readInt32();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected long getLong(ByteBuffer buffer){
+	protected long getLong(CopyOnWriteBuffer cowBuffer){
 		Long arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		long o = stream.readInt64();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected float getFloat(ByteBuffer buffer){
+	protected float getFloat(CopyOnWriteBuffer cowBuffer){
 		Float arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		float o = stream.readFloat();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected double getDouble(ByteBuffer buffer){
+	protected double getDouble(CopyOnWriteBuffer cowBuffer){
 		Double arg = getArg();
 		if (arg != null){
 			return arg;
 		}
-		
+
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		double o = stream.readDouble();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
-	protected String getString(ByteBuffer buffer){
+	protected String getString(CopyOnWriteBuffer cowBuffer){
 		String arg = getArg();
 		if (arg != null){
 			return arg;
 		}
 		
+		byte[] buffer = cowBuffer.getBuffer();
 		Stream stream = getStream();
-		int writePos = beginRead(stream, buffer);
+		beginRead(stream, buffer);
 		String o = stream.readString();
-		readPos += stream.readLength();
-		endRead(stream, buffer, writePos);
+		endRead(stream);
 		return o;
 	}
 	
@@ -217,7 +215,7 @@ public abstract class Pack {
 	
 	@SuppressWarnings("unchecked")
 	private <T> T getArg(){
-		Object arg = args.get(readIndex);
+		Object arg = argsGet(readIndex);
 		if (arg != null){
 			++readIndex;
 			T t = (T) arg;
@@ -226,21 +224,112 @@ public abstract class Pack {
 		return null;
 	}
 	
-	private int beginRead(Stream stream, ByteBuffer buffer){
-		// 保存当前写入position
-		int writePos = buffer.position();
-		// 准备读
-		buffer.flip();
-		buffer.position(readPos);
-		
+	private void beginRead(Stream stream, byte[] buffer){
+		stream.clearRead();
 		stream.setReadBuffer(buffer);
-		return writePos;
+		stream.skipRead(readPos);
 	}
 	
-	private void endRead(Stream stream, ByteBuffer buffer, int writePos){
+	private void endRead(Stream stream){
 		stream.setReadBuffer(null);
-		buffer.clear();
-		buffer.position(writePos);
+		readPos = stream.readLength();
 		++readIndex;
+	}
+	
+	/** 以下Args封装 */
+	private int argsSize = 0;
+	private Object arg0;
+	private Object arg1;
+	private Object arg2;
+	private Object arg3;
+	private Object arg4;
+	private List<Object> args;
+	private static final int MAX_ARG_CACHE_NUM = 5;
+	
+	protected void argsCopyFrom(Pack other){
+		argsSize = other.argsSize;
+		arg0 = other.arg0;
+		arg1 = other.arg1;
+		arg2 = other.arg2;
+		arg3 = other.arg3;
+		arg4 = other.arg4;
+		if (!CollectionUtils.isEmpty(other.args)){
+			if (args == null){
+				args = new ArrayList<Object>(other.args.size());
+			}else{
+				args.clear();
+			}
+			args.addAll(other.args);
+		}else{
+			if (args != null){
+				args.clear();
+			}
+		}
+	}
+	
+	protected void argsClear(){
+		argsSize = 0;
+		arg0 = arg1 = arg2 = arg3 = arg4 = null;
+		if (!CollectionUtils.isEmpty(args)){
+			args.clear();
+		}
+	}
+	
+	protected void argsAdd(Object o){
+		switch (argsSize){
+		case 0: arg0 = o; break;
+		case 1: arg1 = o; break;
+		case 2: arg2 = o; break;
+		case 3: arg3 = o; break;
+		case 4: arg4 = o; break;
+		default:
+			if (args == null){
+				args = new ArrayList<Object>(1);
+			}
+			args.add(o);
+			break;
+		}
+		++argsSize;
+	}
+	
+	protected Object argsGet(int index){
+		switch (index){
+		case 0: return arg0;
+		case 1: return arg1;
+		case 2: return arg2;
+		case 3: return arg3;
+		case 4: return arg4;
+		default: 
+			if (!CollectionUtils.isEmpty(args)){
+				return args.get(index - MAX_ARG_CACHE_NUM);
+			}
+			break;
+		}
+		return null;
+	}
+	
+	protected void argsSet(int index, Object o){
+		if (index < 0 || index >= argsSize){
+			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize");
+		}
+		
+		switch (index){
+		case 0: arg0 = o; break;
+		case 1: arg1 = o; break;
+		case 2: arg2 = o; break;
+		case 3: arg3 = o; break;
+		case 4: arg4 = o; break;
+		default: 
+			args.set(index - MAX_ARG_CACHE_NUM, o);
+			break;
+		}
+	}
+	
+	protected boolean argsIsEmpty(){
+		return argsSize == 0;
+	}
+	
+	protected int argsSize(){
+		return argsSize;
 	}
 }

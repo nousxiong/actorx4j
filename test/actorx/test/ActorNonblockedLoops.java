@@ -30,7 +30,7 @@ public class ActorNonblockedLoops {
 	
 	@Test
 	public void test(){
-		MessagePool.init(count * concurr, Integer.MAX_VALUE);
+		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
 		for (int i=0; i<testCount - 1; ++i){

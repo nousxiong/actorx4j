@@ -22,6 +22,7 @@ import actorx.Packet;
 public class PingPong {
 
 	private static final int count = 10000;
+	
 	@Test
 	public void test(){
 		AxService ctx = new AxService("AXS");

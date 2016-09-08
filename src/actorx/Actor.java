@@ -7,9 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import actorx.util.CopyOnWriteBuffer;
+import actorx.util.CollectionUtils;
+import actorx.util.IMail;
 import actorx.util.Mailbox;
 import actorx.util.MessageGuardFactory;
+import actorx.util.TypeComparator;
 import cque.IntrusiveMpscQueue;
 import cque.MpscNodePool;
 import cque.SimpleNodePool;
@@ -25,20 +27,18 @@ public class Actor {
 	// 是否有自己的handler
 	private boolean handler = false;
 	/**自己退出时需要发送EXIT消息的列表*/
-	private List<ActorId> linkList = new ArrayList<ActorId>(1);
+	private List<ActorId> linkList;
 	/**消息队列*/
 	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>();
 	/**邮箱*/
-	private Mailbox mailbox = new Mailbox();
+	private Mailbox mailbox;
 	// 消息守护者池
 	private SimpleNodePool<MessageGuard> msgGuardPool = 
 		new SimpleNodePool<MessageGuard>(new MessageGuardFactory());
 	// 本地消息池
 	private MpscNodePool<Message> msgPool;
-	// 本地写时拷贝Buffer池
-	private MpscNodePool<CopyOnWriteBuffer> cowBufferPool;
-	/**临时数据，用于取消息时，匹配的消息类型列表*/
-	private List<String> matchedTypes = new ArrayList<String>(5);
+	// 需要匹配的模式，临时数据
+	private Pattern pattern;
 	/**是否已经结束*/
 	private boolean quited = false;
 	
@@ -78,7 +78,7 @@ public class Actor {
 		assert !isQuited();
 		assert aid != null;
 		
-		Message msg = makeEmptyMessage();
+		Message msg = makeNewMessage();
 		if (!sendMessage(axs, selfAid, aid, msg.getType(), msg)){
 			msg.release();
 		}
@@ -154,7 +154,7 @@ public class Actor {
 		
 		Message msg = null;
 		if (args == null){
-			msg = makeEmptyMessage();
+			msg = makeNewMessage();
 		}else{
 			msg = makeMessage(null);
 			for (Object arg : args){
@@ -205,9 +205,9 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(String type){
-		matchedTypes.clear();
-		matchedTypes.add(type);
-		return recv(matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.match(type);
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -217,10 +217,10 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(String type1, String type2){
-		matchedTypes.clear();
-		matchedTypes.add(type1);
-		matchedTypes.add(type2);
-		return recv(matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.match(type1);
+		pattern.match(type2);
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -229,11 +229,55 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(String... types){
-		matchedTypes.clear();
+		Pattern pattern = getPattern();
 		for (String type : types){
-			matchedTypes.add(type);
+			pattern.match(type);
 		}
-		return recv(matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		return recvMessage(pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public MessageGuard recv(ActorId sender){
+		Pattern pattern = getPattern();
+		pattern.match(sender);
+		return recvMessage(pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public MessageGuard recv(ActorId sender, String type){
+		Pattern pattern = getPattern();
+		pattern.match(sender, type);
+		return recvMessage(pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public MessageGuard recv(ActorId sender, String type1, String type2){
+		Pattern pattern = getPattern();
+		pattern.match(sender, type1, type2);
+		return recvMessage(pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public MessageGuard recv(ActorId sender, String... types){
+		Pattern pattern = getPattern();
+		pattern.match(sender, types);
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -241,8 +285,8 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(){
-		matchedTypes.clear();
-		return recv(matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -251,8 +295,9 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(long timeout){
-		matchedTypes.clear();
-		return recv(matchedTypes, timeout, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.after(timeout);
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -262,8 +307,9 @@ public class Actor {
 	 * @return
 	 */
 	public MessageGuard recv(long timeout, TimeUnit timeUnit){
-		matchedTypes.clear();
-		return recv(matchedTypes, timeout, timeUnit);
+		Pattern pattern = getPattern();
+		pattern.after(timeout, timeUnit);
+		return recvMessage(pattern);
 	}
 	
 	/**
@@ -271,8 +317,8 @@ public class Actor {
 	 * @param patt
 	 * @return
 	 */
-	public MessageGuard recv(Pattern patt){
-		return recv(patt.getMatchedTypes(), patt.getTimeout(), patt.getTimeUnit());
+	public MessageGuard recv(Pattern pattern){
+		return recvMessage(pattern);
 	}
 
 	///------------------------------------------------------------------------
@@ -285,9 +331,9 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt, String type){
-		matchedTypes.clear();
-		matchedTypes.add(type);
-		return recv(pkt, matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.match(type);
+		return recvMessage(pkt, pattern);
 	}
 	
 	/**
@@ -298,10 +344,10 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt, String type1, String type2){
-		matchedTypes.clear();
-		matchedTypes.add(type1);
-		matchedTypes.add(type2);
-		return recv(pkt, matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.match(type1);
+		pattern.match(type2);
+		return recvMessage(pkt, pattern);
 	}
 	
 	/**
@@ -311,11 +357,55 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt, String... types){
-		matchedTypes.clear();
+		Pattern pattern = getPattern();
 		for (String type : types){
-			matchedTypes.add(type);
+			pattern.match(type);
 		}
-		return recv(pkt, matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public Packet recv(Packet pkt, ActorId sender){
+		Pattern pattern = getPattern();
+		pattern.match(sender);
+		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public Packet recv(Packet pkt, ActorId sender, String type){
+		Pattern pattern = getPattern();
+		pattern.match(sender, type);
+		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public Packet recv(Packet pkt, ActorId sender, String type1, String type2){
+		Pattern pattern = getPattern();
+		pattern.match(sender, type1, type2);
+		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @return
+	 */
+	public Packet recv(Packet pkt, ActorId sender, String... types){
+		Pattern pattern = getPattern();
+		pattern.match(sender, types);
+		return recvMessage(pkt, pattern);
 	}
 
 	/**
@@ -324,7 +414,8 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt){
-		return recv(pkt, matchedTypes, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		return recvMessage(pkt, pattern);
 	}
 
 	/**
@@ -334,7 +425,9 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt, long timeout){
-		return recv(pkt, matchedTypes, timeout, Pattern.DEFAULT_TIMEUNIT);
+		Pattern pattern = getPattern();
+		pattern.after(timeout);
+		return recvMessage(pkt, pattern);
 	}
 
 	/**
@@ -345,17 +438,19 @@ public class Actor {
 	 * @return
 	 */
 	public Packet recv(Packet pkt, long timeout, TimeUnit timeUnit){
-		return recv(pkt, matchedTypes, timeout, timeUnit);
+		Pattern pattern = getPattern();
+		pattern.after(timeout, timeUnit);
+		return recvMessage(pkt, pattern);
 	}
 
 	/**
 	 * 使用Packet接收只读数据
 	 * @param pkt 如果null，创建一个新Packet；反之，用户之前创建或者缓存的Packet
-	 * @param patt
+	 * @param pattern
 	 * @return
 	 */
-	public Packet recv(Packet pkt, Pattern patt){
-		return recv(pkt, patt.getMatchedTypes(), Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
+	public Packet recv(Packet pkt, Pattern pattern){
+		return recvMessage(pkt, pattern);
 	}
 
 	///------------------------------------------------------------------------
@@ -370,9 +465,9 @@ public class Actor {
 	}
 	
 	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
-		matchedTypes.clear();
-		matchedTypes.add(MsgType.EXIT);
-		try (MessageGuard guard = recv(matchedTypes, timeout, timeUnit)){
+		Pattern pattern = getPattern();
+		pattern.match(MsgType.EXIT);
+		try (MessageGuard guard = recv(pattern)){
 			Message msg = guard.get();
 			if (msg == null){
 				return null;
@@ -389,8 +484,7 @@ public class Actor {
 	 */
 	public void init(){
 		if (handler){
-			msgPool = MessagePool.getLocalPool();
-			cowBufferPool = CowBufferPool.getLocalPool();
+			msgPool = MessagePool.getLocalPool(MessagePool.fetchInitList());
 		}
 	}
 
@@ -412,14 +506,16 @@ public class Actor {
 		}
 
 		// 发送退出消息给所有链接的Actor
-		if (!linkList.isEmpty()){
+		if (!CollectionUtils.isEmpty(linkList)){
 			for (ActorId aid : linkList){
 				send(aid, MsgType.EXIT, aex);
 			}
 		}
 		
 		quited = true;
-		mailbox.clear();
+		if (mailbox != null){
+			mailbox.clear();
+		}
 		while (true){
 			Message msg = msgQue.poll();
 			if (msg == null){
@@ -484,6 +580,7 @@ public class Actor {
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
 	public void addLink(ActorId target){
+		List<ActorId> linkList = getLinkList();
 		linkList.add(target);
 	}
 	
@@ -491,24 +588,24 @@ public class Actor {
 		msgQue.put(msg);
 	}
 	
-	private MessageGuard recv(List<String> matchedTypes, long timeout, TimeUnit timeUnit){
+	private MessageGuard recvMessage(Pattern pattern){
 		assert !isQuited();
 		
-		if (matchedTypes != this.matchedTypes){
-			this.matchedTypes.clear();
-			if (matchedTypes != null){
-				this.matchedTypes.addAll(matchedTypes);
+		List<String> matchedTypes = pattern.getMatchedTypes();
+		List<Object> matchedActors = pattern.getMatchedActors();
+		long timeout = pattern.getTimeout();
+		TimeUnit timeUnit = pattern.getTimeUnit();
+		
+		Message msg = null;
+		if (mailbox != null && !mailbox.isEmpty()){
+			IMail mail = mailbox.fetch(matchedTypes, matchedActors);
+			if (mail != null){
+				msg = (Message) mail;
+				return returnMessage(msg);
 			}
-			matchedTypes = this.matchedTypes;
 		}
 		
-		Message msg = mailbox.fetch(matchedTypes);
-		if (msg != null){
-			return returnMessage(msg);
-		}
-		
-		timeout = timeUnit.toMillis(timeout);
-		long currTimeout = timeout;
+		long currTimeout = timeUnit.toMillis(timeout);
 		while (true){
 			long bt = 0;
 			long eclipse = 0;
@@ -521,8 +618,9 @@ public class Actor {
 				break;
 			}
 			
-			// 整理msgQue，将有类型的消息分类放入类型队列
-			if (matchedTypes.isEmpty()){
+			boolean typesEmpty = CollectionUtils.isEmpty(matchedTypes);
+			boolean actorsEmpty = CollectionUtils.isEmpty(matchedActors);
+			if (typesEmpty && actorsEmpty){
 				break;
 			}
 			
@@ -536,17 +634,51 @@ public class Actor {
 			}
 			
 			boolean found = false;
-			String msgType = msg.getType();
-			for (String type : matchedTypes){
-				if (type.equals(msgType)){
+			if (!typesEmpty){
+				String msgType = msg.getType();
+				for (String type : matchedTypes){
+					if (TypeComparator.compare(type, msgType) == 0){
+						found = true;
+						break;
+					}
+				}
+			}
+			
+			if (!found && !actorsEmpty){
+				String msgType = msg.getType();
+				ActorId msgSender = msg.getSender();
+				boolean matchedActor = false;
+				boolean hasTypes = false;
+				for (Object obj : matchedActors){
+					if (obj instanceof ActorId){
+						if (matchedActor && !hasTypes){
+							found = true;
+							break;
+						}
+						ActorId sender = (ActorId) obj;
+						matchedActor = ActorId.compare(sender, msgSender) == 0;
+						hasTypes = false;
+					}else if (obj instanceof String){
+						hasTypes = true;
+						if (matchedActor){
+							String type = (String) obj;
+							if (TypeComparator.compare(type, msgType) == 0){
+								found = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if (matchedActor && !hasTypes){
 					found = true;
-					break;
 				}
 			}
 			
 			if (found){
 				break;
 			}else{
+				Mailbox mailbox = getMailbox();
 				mailbox.add(msg);
 			}
 			
@@ -558,8 +690,8 @@ public class Actor {
 		return returnMessage(msg);
 	}
 	
-	private Packet recv(Packet pkt, List<String> matchedTypes, long timeout, TimeUnit timeUnit){
-		try (MessageGuard guard = recv(matchedTypes, timeout, timeUnit)){
+	private Packet recvMessage(Packet pkt, Pattern pattern){
+		try (MessageGuard guard = recvMessage(pattern)){
 			Message msg = guard.get();
 			if (msg == null){
 				return null;
@@ -572,13 +704,12 @@ public class Actor {
 	}
 	
 	private MessageGuard returnMessage(Message msg){
-		matchedTypes.clear();
 		return msgGuardPool.get().wrap(msg);
 	}
 	
 	private Message makeNewMessage(){
 		if (handler){
-			return Message.make(msgPool, cowBufferPool);
+			return Message.make(msgPool);
 		}else{
 			return Message.make();
 		}
@@ -589,7 +720,7 @@ public class Actor {
 			if (src != null){
 				return Message.make(src, msgPool);
 			}else{
-				return Message.make(msgPool, cowBufferPool);
+				return Message.make(msgPool);
 			}
 		}else{
 			if (src != null){
@@ -600,11 +731,26 @@ public class Actor {
 		}
 	}
 	
-	private Message makeEmptyMessage(){
-		if (handler){
-			return Message.makeEmpty(msgPool);
-		}else{
-			return Message.makeEmpty();
+	private List<ActorId> getLinkList(){
+		if (linkList == null){
+			linkList = new ArrayList<ActorId>(5);
 		}
+		return linkList;
+	}
+	
+	private Mailbox getMailbox(){
+		if (mailbox == null){
+			mailbox = new Mailbox();
+		}
+		return mailbox;
+	}
+	
+	private Pattern getPattern(){
+		if (pattern == null){
+			pattern = new Pattern();
+		}else{
+			pattern.clear();
+		}
+		return pattern;
 	}
 }

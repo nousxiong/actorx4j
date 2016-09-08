@@ -82,7 +82,7 @@ public class ActorBase {
 		assertTrue("Bye!".equals(reply));
 		
 		ActorExit aex = baseAx.recvExit();
-		assertTrue(aex.getType() == ExitType.EXCEPT);
+		assertTrue(aex.getExitType() == ExitType.EXCEPT);
 		System.out.println(aex.getErrmsg());
 	
 		axs.shutdown();

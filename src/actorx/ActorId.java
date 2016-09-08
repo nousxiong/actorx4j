@@ -7,6 +7,8 @@ package actorx;
  * @author Xiong
  */
 public class ActorId extends actorx.adl.ActorId {
+	// 空ActorId
+	public static final ActorId NULLAID = new ActorId(0, 0, 0, 0);
 	
 	public ActorId(long axid, long timestamp, long id, long sid){
 		this.axid = axid;
@@ -55,20 +57,46 @@ public class ActorId extends actorx.adl.ActorId {
 		result = 37 * result + (int) (sid ^ (sid >>> 32));
 		return result;
 	}
-
-	public long getAxid() {
-		return axid;
-	}
-
-	public long getSid() {
-		return sid;
-	}
-
-	public long getId() {
-		return id;
-	}
-
-	public long getTimestamp() {
-		return timestamp;
+	
+	/**
+	 * 比较2个ActorId
+	 * @param lhs
+	 * @param rhs
+	 * @return 0 ==, -1 <, 1 >
+	 */
+	public static int compare(ActorId lhs, ActorId rhs){
+		if (lhs != null && rhs == null){
+			return 1;
+		}else if (lhs == null && rhs != null){
+			return -1;
+		}else if (lhs == null && rhs == null){
+			return 0;
+		}
+		
+		if (lhs.axid < rhs.axid){
+			return -1;
+		}else if (lhs.axid > rhs.axid){
+			return 1;
+		}
+		
+		if (lhs.timestamp < rhs.timestamp){
+			return -1;
+		}else if (lhs.timestamp > rhs.timestamp){
+			return 1;
+		}
+		
+		if (lhs.id < rhs.id){
+			return -1;
+		}else if (lhs.id > rhs.id){
+			return 1;
+		}
+		
+		if (lhs.sid < rhs.sid){
+			return -1;
+		}else if (lhs.sid > rhs.sid){
+			return 1;
+		}
+		
+		return 0;
 	}
 }

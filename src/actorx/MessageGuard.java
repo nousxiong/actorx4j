@@ -39,7 +39,6 @@ public class MessageGuard implements AutoCloseable, INode {
 	public void release(){
 		if (freer != null){
 			freer.free(this);
-			freer = null;
 		}
 	}
 

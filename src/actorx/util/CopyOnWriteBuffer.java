@@ -3,7 +3,6 @@
  */
 package actorx.util;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import actorx.CowBufferPool;
@@ -15,11 +14,13 @@ import cque.INode;
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
 public class CopyOnWriteBuffer implements INode {
-	private ByteBuffer buffer;
+	private byte[] buffer;
+	private int size;
 	private AtomicInteger refCount = new AtomicInteger(0);
 	
 	public CopyOnWriteBuffer(int capacity){
-		this.buffer = ByteBuffer.allocate(capacity);
+		this.buffer = new byte[capacity];
+		this.size = 0;
 	}
 	
 	/**
@@ -28,18 +29,10 @@ public class CopyOnWriteBuffer implements INode {
 	 * @return
 	 */
 	public CopyOnWriteBuffer copyOnWrite(){
-		CopyOnWriteBuffer cowBuffer = CowBufferPool.get(buffer.capacity());
-		cowBuffer.buffer.put(buffer.array(), 0, buffer.position());
+		CopyOnWriteBuffer cowBuffer = CowBufferPool.get(buffer.length);
+		copy(buffer, cowBuffer, size);
 		decrRef();
 		return cowBuffer;
-	}
-	
-	/**
-	 * 复制一个ByteBuffer，共享内部byte[]
-	 * @return
-	 */
-	public ByteBuffer duplicateBuffer(){
-		return buffer.duplicate();
 	}
 	
 	/**
@@ -60,12 +53,12 @@ public class CopyOnWriteBuffer implements INode {
 			return this;
 		}
 		
-		if (buffer.remaining() >= length){
+		if (buffer.length - size >= length){
 			return this;
 		}
 		
-		CopyOnWriteBuffer newBuffer = CowBufferPool.get(buffer.capacity() + length);
-		newBuffer.getBuffer().put(buffer.array(), 0, buffer.position());
+		CopyOnWriteBuffer newBuffer = CowBufferPool.get(size + length);
+		copy(buffer, newBuffer, size);
 		return newBuffer;
 	}
 	
@@ -73,8 +66,24 @@ public class CopyOnWriteBuffer implements INode {
 	 * 获取当前buffer
 	 * @return
 	 */
-	public ByteBuffer getBuffer(){
+	public byte[] getBuffer(){
 		return buffer;
+	}
+	
+	/**
+	 * 获取当前buffer的大小
+	 * @return
+	 */
+	public int size(){
+		return size;
+	}
+	
+	public void write(int len){
+		if (size + len > buffer.length){
+			size = buffer.length;
+		}else{
+			size += len;
+		}
 	}
 	
 	/**
@@ -99,6 +108,13 @@ public class CopyOnWriteBuffer implements INode {
 		return ref;
 	}
 	
+	private static void copy(byte[] src, CopyOnWriteBuffer dest, int len){
+		if (len > 0){
+			System.arraycopy(src, 0, dest.buffer, 0, len);
+		}
+		dest.size = len;
+	}
+	
 	/** 以下实现INode接口 */
 	private INode next;
 	private IFreer freer;
@@ -107,7 +123,6 @@ public class CopyOnWriteBuffer implements INode {
 	public void release(){
 		if (freer != null){
 			freer.free(this);
-			freer = null;
 		}
 	}
 
@@ -127,7 +142,7 @@ public class CopyOnWriteBuffer implements INode {
 	public void onFree(){
 		next = null;
 		freer = null;
-		buffer.clear();
+		size = 0;
 	}
 
 	@Override

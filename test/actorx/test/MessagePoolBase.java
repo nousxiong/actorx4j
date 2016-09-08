@@ -27,7 +27,7 @@ public class MessagePoolBase {
 	
 	@Test
 	public void test(){
-		MessagePool.init(count * concurr, Integer.MAX_VALUE);
+		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		AxService ctx = new AxService("AXS");
 		ctx.startup(concurr);
 		

@@ -14,23 +14,15 @@ public class ActorExit extends actorx.adl.ActorExit {
 	}
 	
 	public ActorExit(ExitType et, String errmsg){
-		setType(et);
+		setExitType(et);
 		setErrmsg(errmsg);
 	}
 	
-	public void setType(ExitType et){
+	public void setExitType(ExitType et){
 		this.type = et.getValue();
 	}
 	
-	public void setErrmsg(String errmsg){
-		this.errmsg = errmsg;
-	}
-	
-	public ExitType getType(){
+	public ExitType getExitType(){
 		return ExitType.parse(type);
-	}
-	
-	public String getErrmsg(){
-		return errmsg;
 	}
 }

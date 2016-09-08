@@ -20,7 +20,7 @@ public abstract class AbstractHandler implements Runnable {
 			self.init();
 			run(self);
 		}catch (Exception e){
-			aex.setType(ExitType.EXCEPT);
+			aex.setExitType(ExitType.EXCEPT);
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);

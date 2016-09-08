@@ -3,10 +3,6 @@
  */
 package actorx;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
 import actorx.util.CopyOnWriteBuffer;
 import actorx.util.Pack;
 import adata.Base;
@@ -35,72 +31,58 @@ public class Packet extends Pack {
 	 * @throws Exception 
 	 */
 	public <T extends Base> T get(T t){
-		return super.get(getBuffer(), t);
+		return super.get(cowBuffer, t);
 	}
 	
 	public <T extends Base> T get(Class<T> c){
-		return super.get(getBuffer(), c);
+		return super.get(cowBuffer, c);
 	}
 	
 	public byte getByte(){
-		return super.getByte(getBuffer());
+		return super.getByte(cowBuffer);
 	}
 	
 	public boolean getBool(){
-		return super.getBool(getBuffer());
+		return super.getBool(cowBuffer);
 	}
 	
 	public short getShort(){
-		return super.getShort(getBuffer());
+		return super.getShort(cowBuffer);
 	}
 	
 	public int getInt(){
-		return super.getInt(getBuffer());
+		return super.getInt(cowBuffer);
 	}
 	
 	public long getLong(){
-		return super.getLong(getBuffer());
+		return super.getLong(cowBuffer);
 	}
 	
 	public float getFloat(){
-		return super.getFloat(getBuffer());
+		return super.getFloat(cowBuffer);
 	}
 	
 	public double getDouble(){
-		return super.getDouble(getBuffer());
+		return super.getDouble(cowBuffer);
 	}
 	
 	public String getString(){
-		return super.getString(getBuffer());
+		return super.getString(cowBuffer);
 	}
 	
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	public void set(ActorId sender, String type, CopyOnWriteBuffer cowBuffer, List<Object> args){
-		this.sender = sender;
-		this.type = type;
+	public void set(Pack other, CopyOnWriteBuffer cowBuffer){
+		this.sender = other.getSender();
+		this.type = other.getType();
 		if (this.cowBuffer != null){
 			this.cowBuffer.decrRef();
 		}
 		this.cowBuffer = cowBuffer;
-		if (args != null){
-			if (this.args == null){
-				this.args = new ArrayList<Object>(args.size());
-			}
-			this.args.clear();
-			this.args.addAll(args);
-		}else{
-			if (this.args != null){
-				this.args.clear();
-			}
-		}
+		this.argsCopyFrom(other);
 		this.readIndex = 0;
 		this.readPos = 0;
-	}
-	
-	private ByteBuffer getBuffer(){
-		return cowBuffer == null ? null : cowBuffer.getBuffer();
 	}
 	
 }
