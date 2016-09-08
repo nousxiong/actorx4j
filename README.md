@@ -4,12 +4,14 @@ An actor-model based communication library(Java version)
 Usage
 --------
 
-Just import to eclipse.
+Add dist and lib's jars into your java project
 
 Dependencies
 --------
 
-https://github.com/nousxiong/cque4j
+https://github.com/nousxiong/cque4j 
+https://github.com/lordoffox/adata
+
 
 Example
 --------
@@ -99,7 +101,7 @@ public class ActorBase {
 		assertTrue("Bye!".equals(reply));
 		
 		ActorExit aex = baseAx.recvExit();
-		assertTrue(aex.getType() == ExitType.EXCEPT);
+		assertTrue(aex.getExitType() == ExitType.EXCEPT);
 		System.out.println(aex.getErrmsg());
 	
 		axs.shutdown();
