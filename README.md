@@ -25,6 +25,7 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -37,7 +38,7 @@ import actorx.ExitType;
 import actorx.LinkType;
 import actorx.Message;
 import actorx.MessageGuard;
-import actorx.AbstractHandler;
+import actorx.IActorHandler;
 import actorx.Packet;
 import actorx.Pattern;
 
@@ -48,15 +49,15 @@ import actorx.Pattern;
 public class ActorBase {
 
 	@Test
-	public void test(){
+	public void test() throws IOException{
 		AxSystem axs = new AxSystem("AXS");
 		axs.startup();
 
 		Actor baseAx = axs.spawn();
-		ActorId aid = axs.spawn(baseAx, new AbstractHandler() {
+		ActorId aid = axs.spawn(baseAx, new IActorHandler() {
 			@Override
 			public void run(Actor self) throws Exception{
-				Packet pkt = self.recv(Packet.NULL, "INIT");
+				Packet pkt = self.recvPacket("INIT");
 				ActorId baseAid = pkt.getSender();
 				
 				// 设置接收模式
@@ -64,7 +65,8 @@ public class ActorBase {
 				patt.match("HELLO");
 				patt.after(3000, TimeUnit.MILLISECONDS);
 				
-				while (true){
+				boolean goon = true;
+				while (goon){
 					try (MessageGuard guard = self.recv(patt)){
 						Message msg = guard.get();
 						if (msg == null){
@@ -75,7 +77,7 @@ public class ActorBase {
 						String str = msg.getString();
 						if ("end".equals(str)){
 							System.out.println("Recv<"+str+">");
-							break;
+							goon = false;
 						}
 					}catch (Exception e){
 						e.printStackTrace();
@@ -96,7 +98,7 @@ public class ActorBase {
 		}
 		baseAx.send(aid, "HELLO", "end");
 		
-		Packet pkt = baseAx.recv(Packet.NULL, "OK");
+		Packet pkt = baseAx.recvPacket("OK");
 		assertTrue(pkt.getSender().equals(aid));
 		String reply = pkt.getString();
 		assertTrue("Bye!".equals(reply));
