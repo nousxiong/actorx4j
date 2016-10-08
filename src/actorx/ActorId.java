@@ -58,6 +58,17 @@ public class ActorId extends actorx.adl.ActorId {
 		return result;
 	}
 	
+	@Override
+	public String toString(){
+		StringBuilder sb = new StringBuilder(32);
+		sb.append("Aid<");
+		sb.append(axid).append('.');
+		sb.append(timestamp).append('.');
+		sb.append(id).append('.');
+		sb.append(sid).append(">");
+		return sb.toString();
+	}
+	
 	/**
 	 * 比较2个ActorId
 	 * @param lhs
@@ -98,5 +109,15 @@ public class ActorId extends actorx.adl.ActorId {
 		}
 		
 		return 0;
+	}
+	
+	/**
+	 * 比较两个ActorId是否相等
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	public static boolean equals(ActorId lhs, ActorId rhs){
+		return compare(lhs, rhs) == 0;
 	}
 }

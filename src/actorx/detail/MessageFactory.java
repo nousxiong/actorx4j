@@ -1,20 +1,19 @@
 /**
  * 
  */
-package actorx.util;
+package actorx.detail;
 
+import actorx.Message;
 import cque.INode;
 import cque.INodeFactory;
 
 /**
  * @author Xiong
- * 
+ *
  */
-public class SenderMailListFactory implements INodeFactory{
-
+public class MessageFactory implements INodeFactory {
 	@Override
 	public INode createInstance() {
-		return new SenderMailList();
+		return new Message();
 	}
-
 }

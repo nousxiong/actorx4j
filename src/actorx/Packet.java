@@ -3,8 +3,8 @@
  */
 package actorx;
 
-import actorx.util.CopyOnWriteBuffer;
-import actorx.util.Pack;
+import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.Pack;
 import adata.Base;
 
 /**
@@ -14,7 +14,7 @@ import adata.Base;
 public class Packet extends Pack {
 	private CopyOnWriteBuffer cowBuffer;
 	
-	public static final Packet NULL = null;
+	public static final Packet NEW = null;
 
 	@Override
 	public void clear(){
@@ -73,7 +73,7 @@ public class Packet extends Pack {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	public void set(Pack other, CopyOnWriteBuffer cowBuffer){
+	void set(Pack other, CopyOnWriteBuffer cowBuffer){
 		this.sender = other.getSender();
 		this.type = other.getType();
 		if (this.cowBuffer != null){

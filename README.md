@@ -32,7 +32,7 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
-import actorx.AxService;
+import actorx.AxSystem;
 import actorx.ExitType;
 import actorx.LinkType;
 import actorx.Message;
@@ -49,7 +49,7 @@ public class ActorBase {
 
 	@Test
 	public void test(){
-		AxService axs = new AxService("AXS");
+		AxSystem axs = new AxSystem("AXS");
 		axs.startup();
 
 		Actor baseAx = axs.spawn();

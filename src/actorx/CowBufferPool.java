@@ -6,8 +6,8 @@ package actorx;
 import java.util.ArrayList;
 import java.util.List;
 
-import actorx.util.CopyOnWriteBuffer;
-import actorx.util.CowBufferFactory;
+import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.CowBufferFactory;
 import cque.ConcurrentNodePool;
 import cque.MpscNodePool;
 

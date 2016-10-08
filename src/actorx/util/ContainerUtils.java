@@ -6,12 +6,13 @@ package actorx.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Xiong
  *
  */
-public class CollectionUtils {
+public class ContainerUtils {
 	
 	/**
 	 * 查看指定的容器是否为空（包括null）
@@ -20,6 +21,15 @@ public class CollectionUtils {
 	 */
 	public static boolean isEmpty(Collection<?> coll){
 		return coll == null || coll.isEmpty();
+	}
+	
+	/**
+	 * 查看指定的map是否为空（包括null）
+	 * @param map
+	 * @return
+	 */
+	public static boolean isEmpty(Map<?, ?> map){
+		return map == null || map.isEmpty();
 	}
 	
 	/**
@@ -45,7 +55,7 @@ public class CollectionUtils {
 	}
 	
 	/**
-	 * 同{@link CollectionUtils#copyTypes}
+	 * 同{@link ContainerUtils#copyTypes}
 	 * @param src
 	 * @param dest
 	 * @return

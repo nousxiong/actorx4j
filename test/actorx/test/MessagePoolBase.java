@@ -5,12 +5,14 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
-import actorx.AbstractHandler;
+import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxService;
+import actorx.AxSystem;
 import actorx.Message;
 import actorx.MessageGuard;
 import actorx.MessagePool;
@@ -26,20 +28,20 @@ public class MessagePoolBase {
 	static final int count = 100000;
 	
 	@Test
-	public void test(){
+	public void test() throws IOException{
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
-		AxService ctx = new AxService("AXS");
+		AxSystem ctx = new AxSystem("AXS");
 		ctx.startup(concurr);
 		
 		Actor baseAx = ctx.spawn();
 		ActorId[] producers = new ActorId[concurr];
 		for (int i=0; i<concurr; ++i){
-			producers[i] = ctx.spawn(baseAx, new AbstractHandler() {
+			producers[i] = ctx.spawn(baseAx, new IActorHandler() {
 				public void run(Actor self){
-					Packet pkt = self.recv(Packet.NULL, "INIT");
+					Packet pkt = self.recvPacket("INIT");
 					ActorId sender = pkt.getSender();
 					self.send(sender, "READY");
-					self.recv(pkt, "START");
+					self.recvPacket(pkt, "START");
 					
 					try (MessageGuard guard = self.makeMessage()){
 						Message msg = guard.get();
@@ -56,7 +58,7 @@ public class MessagePoolBase {
 		
 		for (ActorId aid : producers){
 			baseAx.send(aid, "INIT");
-			baseAx.recv(Packet.NULL, "READY");
+			baseAx.recvPacket("READY");
 		}
 
 		long bt = System.currentTimeMillis();

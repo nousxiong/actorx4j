@@ -1,13 +1,14 @@
 /**
  * 
  */
-package actorx.util;
+package actorx.detail;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import actorx.ActorId;
 import actorx.MsgType;
+import actorx.util.ContainerUtils;
 import adata.Base;
 import adata.Stream;
 
@@ -33,11 +34,15 @@ public abstract class Pack {
 	}
 	
 	public void clear(){
-		sender = null;
-		type = null;
+		sender = ActorId.NULLAID;
+		type = MsgType.NULLTYPE;
 		readPos = 0;
 		readIndex = 0;
 		argsClear();
+	}
+	
+	public void resetRead(){
+		readIndex = 0;
 	}
 	
 	public <T> T getRaw(){
@@ -63,6 +68,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		((Base) t).read(stream);
+		argsSet(readIndex, t);
 		endRead(stream);
 		return t;
 	}
@@ -84,6 +90,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		t.read(stream);
+		argsSet(readIndex, t);
 		endRead(stream);
 		return t;
 	}
@@ -98,6 +105,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		byte o = stream.readInt8();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -112,6 +120,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		byte o = stream.readInt8();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o != 0;
 	}
@@ -126,6 +135,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		short o = stream.readInt16();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -140,6 +150,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		int o = stream.readInt32();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -154,6 +165,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		long o = stream.readInt64();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -168,6 +180,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		float o = stream.readFloat();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -182,6 +195,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		double o = stream.readDouble();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -196,6 +210,7 @@ public abstract class Pack {
 		Stream stream = getStream();
 		beginRead(stream, buffer);
 		String o = stream.readString();
+		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
 	}
@@ -253,7 +268,7 @@ public abstract class Pack {
 		arg2 = other.arg2;
 		arg3 = other.arg3;
 		arg4 = other.arg4;
-		if (!CollectionUtils.isEmpty(other.args)){
+		if (!ContainerUtils.isEmpty(other.args)){
 			if (args == null){
 				args = new ArrayList<Object>(other.args.size());
 			}else{
@@ -270,7 +285,7 @@ public abstract class Pack {
 	protected void argsClear(){
 		argsSize = 0;
 		arg0 = arg1 = arg2 = arg3 = arg4 = null;
-		if (!CollectionUtils.isEmpty(args)){
+		if (!ContainerUtils.isEmpty(args)){
 			args.clear();
 		}
 	}
@@ -293,6 +308,10 @@ public abstract class Pack {
 	}
 	
 	protected Object argsGet(int index){
+		if (index < 0 || index >= argsSize){
+			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize");
+		}
+		
 		switch (index){
 		case 0: return arg0;
 		case 1: return arg1;
@@ -300,7 +319,7 @@ public abstract class Pack {
 		case 3: return arg3;
 		case 4: return arg4;
 		default: 
-			if (!CollectionUtils.isEmpty(args)){
+			if (!ContainerUtils.isEmpty(args)){
 				return args.get(index - MAX_ARG_CACHE_NUM);
 			}
 			break;

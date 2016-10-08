@@ -10,6 +10,7 @@ package actorx;
 public enum ExitType {
 	NORMAL((byte) 0), // 正常退出
 	EXCEPT((byte) 1), // 异常退出
+	ALREADY((byte) 2), // 链接时已经退出
 	;
 	
 	public byte getValue(){

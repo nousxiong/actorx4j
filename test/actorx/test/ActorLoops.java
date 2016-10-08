@@ -5,14 +5,16 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.Test;
 
-import actorx.AbstractHandler;
+import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxService;
+import actorx.AxSystem;
 import actorx.Message;
 import actorx.MessageGuard;
 import actorx.MessagePool;
@@ -28,11 +30,11 @@ public class ActorLoops {
 	private static final int count = 100000;
 	
 	@Test
-	public void test() {
+	public void test() throws IOException {
 		System.out.println("Concurrent count: "+concurr);
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		
-		AxService axs = new AxService("AXS");
+		AxSystem axs = new AxSystem("AXS");
 		axs.startup(concurr);
 
 		Actor consumer = axs.spawn();
@@ -40,13 +42,13 @@ public class ActorLoops {
 		List<ActorId> producers = new ArrayList<ActorId>(concurr);
 		for (int i=0; i<concurr; ++i){
 			final int index = i;
-			ActorId aid = axs.spawn(consumer, new AbstractHandler() {
+			ActorId aid = axs.spawn(consumer, new IActorHandler() {
 				@Override
 				public void run(Actor self) throws Exception{
-					Packet pkt = self.recv(Packet.NULL, "INIT");
+					Packet pkt = self.recvPacket("INIT");
 					ActorId consAid = pkt.getSender();
 					self.send(consAid, "READY");
-					self.recv(pkt, "START");
+					self.recvPacket(pkt, "START");
 					
 					for (int i=0; i<count; ++i){
 						self.send(consAid, "COUNT", index, i);
@@ -60,7 +62,7 @@ public class ActorLoops {
 		int[] counts = new int[concurr];
 		for (ActorId aid : producers){
 			consumer.send(aid, "INIT");
-			consumer.recv(pkt, "READY");
+			consumer.recvPacket(pkt, "READY");
 		}
 
 		long bt = System.currentTimeMillis();

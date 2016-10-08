@@ -5,7 +5,7 @@ package actorx;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import actorx.util.MessageFactory;
+import actorx.detail.MessageFactory;
 import cque.ConcurrentNodePool;
 import cque.INode;
 import cque.MpscNodePool;

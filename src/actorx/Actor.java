@@ -3,15 +3,19 @@
  */
 package actorx;
 
-import java.util.ArrayList;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import actorx.util.CollectionUtils;
-import actorx.util.IMail;
-import actorx.util.Mailbox;
-import actorx.util.MessageGuardFactory;
-import actorx.util.TypeComparator;
+import actorx.detail.IMail;
+import actorx.detail.Mailbox;
+import actorx.detail.MessageGuardFactory;
+import actorx.util.ContainerUtils;
 import cque.IntrusiveMpscQueue;
 import cque.MpscNodePool;
 import cque.SimpleNodePool;
@@ -19,15 +23,15 @@ import cque.SimpleNodePool;
 /**
  * @author Xiong
  */
-public class Actor {
-	// AxService
-	private AxService axs;
+public class Actor implements Runnable {
+	// AxSystem
+	private AxSystem axs;
 	// ActorId
 	private ActorId selfAid = null;
-	// 是否有自己的handler
-	private boolean handler = false;
+	// handler
+	private IActorHandler handler;
 	/**自己退出时需要发送EXIT消息的列表*/
-	private List<ActorId> linkList;
+	private Set<ActorId> linkList;
 	/**消息队列*/
 	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>();
 	/**邮箱*/
@@ -39,8 +43,12 @@ public class Actor {
 	private MpscNodePool<Message> msgPool;
 	// 需要匹配的模式，临时数据
 	private Pattern pattern;
-	/**是否已经结束*/
-	private boolean quited = false;
+	// 分类型发送Filters
+	private Map<String, Set<ISendFilter>> sendFilters;
+	// 接收Filters
+	private Map<String, Set<IRecvFilter>> recvFilters;
+	/**是否已经退出*/
+	private boolean exited = false;
 	
 	
 	/**
@@ -48,17 +56,17 @@ public class Actor {
 	 * @param axs
 	 * @param aid
 	 */
-	public Actor(AxService axs, ActorId aid, boolean handler){
+	public Actor(AxSystem axs, ActorId aid, IActorHandler handler){
 		this.axs = axs;
 		this.selfAid = aid;
 		this.handler = handler;
 	}
 	
 	/**
-	 * 返回AxService
+	 * 返回AxSystem
 	 * @return
 	 */
-	public AxService getAxService(){
+	public AxSystem getAxSystem(){
 		return axs;
 	}
 	
@@ -71,75 +79,104 @@ public class Actor {
 	}
 	
 	/**
+	 * 链接指定的actor；如果链接成功，则返回{@link MsgType#LINK}；如果对方已经退出，则返回{@link MsgType#EXIT}
+	 * @param aid
+	 */
+	public void link(ActorId aid){
+		link(aid, false);
+	}
+	
+	/**
+	 * 监视指定的actor；如果链接成功，则返回{@link MsgType#MONITOR}；如果对方已经退出，则返回{@link MsgType#EXIT}
+	 * @param aid
+	 */
+	public void monitor(ActorId aid){
+		link(aid, true);
+	}
+	
+	/**
 	 * 发送一个空消息
 	 * @param aid
 	 */
 	public void send(ActorId aid){
-		assert !isQuited();
-		assert aid != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
 		
 		Message msg = makeNewMessage();
-		if (!sendMessage(axs, selfAid, aid, msg.getType(), msg)){
-			msg.release();
-		}
+		sendMessage(aid, MsgType.NULLTYPE, msg);
 	}
 	
 	/**
 	 * 发送消息
 	 * @param aid
-	 * @param type 可以为null
-	 * @param arg 不可为null
+	 * @param type
+	 * @param arg
 	 */
 	public <A> void send(ActorId aid, String type, A arg){
-		assert !isQuited();
-		assert aid != null;
-		assert arg != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
 		
 		Message msg = makeNewMessage();
 		msg.put(arg);
-		if (!sendMessage(axs, selfAid, aid, type, msg)){
-			msg.release();
-		}
+		sendMessage(aid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
 	 * @param aid
-	 * @param type 可以为null
-	 * @param arg1 不可为null
-	 * @param arg2 不可为null
+	 * @param type
+	 * @param arg1
+	 * @param arg2
 	 */
 	public <A1, A2> void send(ActorId aid, String type, A1 arg1, A2 arg2){
-		assert !isQuited();
-		assert aid != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
 		
 		Message msg = makeNewMessage();
 		msg.put(arg1);
 		msg.put(arg2);
-		if (!sendMessage(axs, selfAid, aid, type, msg)){
-			msg.release();
-		}
+		sendMessage(aid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
 	 * @param aid
-	 * @param type 可以为null
-	 * @param arg1 不可为null
-	 * @param arg2 不可为null
-	 * @param arg3 不可为null
+	 * @param type
+	 * @param arg1
+	 * @param arg2
+	 * @param arg3
 	 */
 	public <A1, A2, A3> void send(ActorId aid, String type, A1 arg1, A2 arg2, A3 arg3){
-		assert !isQuited();
-		assert aid != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
 		
 		Message msg = makeNewMessage();
 		msg.put(arg1);
 		msg.put(arg2);
 		msg.put(arg3);
-		if (!sendMessage(axs, selfAid, aid, type, msg)){
-			msg.release();
-		}
+		sendMessage(aid, type, msg);
 	}
 	
 	/**
@@ -149,22 +186,22 @@ public class Actor {
 	 * @param args 可以为null
 	 */
 	public void send(ActorId aid, String type, Object... args){
-		assert !isQuited();
-		assert aid != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
 		
-		Message msg = null;
-		if (args == null){
-			msg = makeNewMessage();
-		}else{
-			msg = makeMessage(null);
+		Message msg = makeNewMessage();
+		if (args != null){
 			for (Object arg : args){
+				if (arg == null){
+					msg.release();
+					throw new NullPointerException();
+				}
 				msg.put(arg);
 			}
 		}
 		
-		if (!sendMessage(axs, selfAid, aid, type, msg)){
-			msg.release();
-		}
+		sendMessage(aid, type, msg);
 	}
 	
 	/**
@@ -173,15 +210,15 @@ public class Actor {
 	 * @param msg
 	 */
 	public void send(ActorId aid, Message src){
-		assert !isQuited();
-		assert aid != null;
-		assert src != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (src == null){
+			throw new NullPointerException();
+		}
 
 		Message msg = makeMessage(src);
-		msg.setSender(selfAid);
-		if (!sendMessage(axs, aid, msg)){
-			msg.release();
-		}
+		sendMessage(aid, msg.getType(), msg);
 	}
 	
 	/**
@@ -190,12 +227,70 @@ public class Actor {
 	 * @param msg
 	 */
 	public void relay(ActorId aid, Message src){
-		assert !isQuited();
-		assert aid != null;
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (src == null){
+			throw new NullPointerException();
+		}
 		
 		Message msg = makeMessage(src);
-		if (!sendMessage(axs, aid, msg)){
-			msg.release();
+		sendMessage(aid, msg.getType(), msg);
+	}
+	
+	/**
+	 * 添加分类型的发送Filter
+	 * @param sendFilter
+	 */
+	public void addSendFilter(String type, ISendFilter sendFilter){
+		Map<String, Set<ISendFilter>> sendFilters = getSendFilters();
+		Set<ISendFilter> sendFilterSet = sendFilters.get(type);
+		if (sendFilterSet == null){
+			sendFilterSet = new HashSet<ISendFilter>();
+			sendFilters.put(type, sendFilterSet);
+		}
+		sendFilterSet.add(sendFilter);
+	}
+	
+	/**
+	 * 移除发送Filter
+	 * @param sendFilter
+	 */
+	public void removeSendFilter(String type, ISendFilter sendFilter){
+		if (!ContainerUtils.isEmpty(sendFilters)){
+			Set<ISendFilter> sendFilterSet = sendFilters.get(type);
+			if (!ContainerUtils.isEmpty(sendFilterSet)){
+				sendFilterSet.remove(sendFilter);
+			}
+		}
+	}
+	
+	/**
+	 * 添加按类型接收Filter
+	 * @param type
+	 * @param recvFilter
+	 */
+	public void addRecvFilter(String type, IRecvFilter recvFilter){
+		Map<String, Set<IRecvFilter>> recvFilters = getRecvFilters();
+		Set<IRecvFilter> recvFilterSet = recvFilters.get(type);
+		if (recvFilterSet == null){
+			recvFilterSet = new HashSet<IRecvFilter>();
+			recvFilters.put(type, recvFilterSet);
+		}
+		recvFilterSet.add(recvFilter);
+	}
+	
+	/**
+	 * 移除按类型接收Filter
+	 * @param type
+	 * @param recvFilter
+	 */
+	public void removeRecvFilter(String type, IRecvFilter recvFilter){
+		if (!ContainerUtils.isEmpty(recvFilters)){
+			Set<IRecvFilter> recvFilterSet = recvFilters.get(type);
+			if (!ContainerUtils.isEmpty(recvFilterSet)){
+				recvFilterSet.remove(recvFilter);
+			}
 		}
 	}
 	
@@ -325,15 +420,34 @@ public class Actor {
 	/// 使用Packet接收
 	///------------------------------------------------------------------------
 	/**
+	 * 接收只读数据
+	 * @param type
+	 * @return
+	 */
+	public Packet recvPacket(String type){
+		return recvPacket(Packet.NEW, type);
+	}
+	
+	/**
 	 * 使用Packet接收只读数据
 	 * @param pkt 如果null，创建一个新Packet；反之，用户之前创建或者缓存的Packet
 	 * @param type
 	 * @return
 	 */
-	public Packet recv(Packet pkt, String type){
+	public Packet recvPacket(Packet pkt, String type){
 		Pattern pattern = getPattern();
 		pattern.match(type);
 		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收只读数据
+	 * @param type1
+	 * @param type2
+	 * @return
+	 */
+	public Packet recvPacket(String type1, String type2){
+		return recvPacket(Packet.NEW, type1, type2);
 	}
 	
 	/**
@@ -343,11 +457,20 @@ public class Actor {
 	 * @param type2
 	 * @return
 	 */
-	public Packet recv(Packet pkt, String type1, String type2){
+	public Packet recvPacket(Packet pkt, String type1, String type2){
 		Pattern pattern = getPattern();
 		pattern.match(type1);
 		pattern.match(type2);
 		return recvMessage(pkt, pattern);
+	}
+
+	/**
+	 * 接收只读数据
+	 * @param types
+	 * @return
+	 */
+	public Packet recvPacket(String... types){
+		return recvPacket(Packet.NEW, types);
 	}
 	
 	/**
@@ -356,56 +479,112 @@ public class Actor {
 	 * @param types
 	 * @return
 	 */
-	public Packet recv(Packet pkt, String... types){
+	public Packet recvPacket(Packet pkt, String... types){
 		Pattern pattern = getPattern();
 		for (String type : types){
 			pattern.match(type);
 		}
 		return recvMessage(pkt, pattern);
 	}
-	
+
 	/**
-	 * 接收指定匹配ActorId的消息
+	 * 接收只读数据
 	 * @param sender
 	 * @return
 	 */
-	public Packet recv(Packet pkt, ActorId sender){
+	public Packet recvPacket(ActorId sender){
+		return recvPacket(Packet.NEW, sender);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param pkt
+	 * @param sender
+	 * @return
+	 */
+	public Packet recvPacket(Packet pkt, ActorId sender){
 		Pattern pattern = getPattern();
 		pattern.match(sender);
 		return recvMessage(pkt, pattern);
 	}
-	
+
 	/**
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
+	 * @param type
 	 * @return
 	 */
-	public Packet recv(Packet pkt, ActorId sender, String type){
+	public Packet recvPacket(ActorId sender, String type){
+		return recvPacket(Packet.NEW, sender, type);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param pkt
+	 * @param sender
+	 * @param type
+	 * @return
+	 */
+	public Packet recvPacket(Packet pkt, ActorId sender, String type){
 		Pattern pattern = getPattern();
 		pattern.match(sender, type);
 		return recvMessage(pkt, pattern);
 	}
-	
+
 	/**
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
+	 * @param type1
+	 * @param type2
 	 * @return
 	 */
-	public Packet recv(Packet pkt, ActorId sender, String type1, String type2){
-		Pattern pattern = getPattern();
-		pattern.match(sender, type1, type2);
-		return recvMessage(pkt, pattern);
+	public Packet recvPacket(ActorId sender, String type1, String type2){
+		return recvPacket(Packet.NEW, sender, type1, type2);
 	}
 	
 	/**
 	 * 接收指定匹配ActorId的消息
+	 * @param pkt
 	 * @param sender
+	 * @param type1
+	 * @param type2
 	 * @return
 	 */
-	public Packet recv(Packet pkt, ActorId sender, String... types){
+	public Packet recvPacket(Packet pkt, ActorId sender, String type1, String type2){
+		Pattern pattern = getPattern();
+		pattern.match(sender, type1, type2);
+		return recvMessage(pkt, pattern);
+	}
+
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param sender
+	 * @param types
+	 * @return
+	 */
+	public Packet recvPacket(ActorId sender, String... types){
+		return recvPacket(Packet.NEW, sender, types);
+	}
+	
+	/**
+	 * 接收指定匹配ActorId的消息
+	 * @param pkt
+	 * @param sender
+	 * @param types
+	 * @return
+	 */
+	public Packet recvPacket(Packet pkt, ActorId sender, String... types){
 		Pattern pattern = getPattern();
 		pattern.match(sender, types);
 		return recvMessage(pkt, pattern);
+	}
+
+	/**
+	 * 接收只读数据
+	 * @return
+	 */
+	public Packet recvPacket(){
+		return recvPacket(Packet.NEW);
 	}
 
 	/**
@@ -413,9 +592,18 @@ public class Actor {
 	 * @param pkt 如果null，创建一个新Packet；反之，用户之前创建或者缓存的Packet
 	 * @return
 	 */
-	public Packet recv(Packet pkt){
+	public Packet recvPacket(Packet pkt){
 		Pattern pattern = getPattern();
 		return recvMessage(pkt, pattern);
+	}
+
+	/**
+	 * 接收指定超时时间的只读数据
+	 * @param timeout
+	 * @return
+	 */
+	public Packet recvPacket(long timeout){
+		return recvPacket(Packet.NEW, timeout);
 	}
 
 	/**
@@ -424,10 +612,20 @@ public class Actor {
 	 * @param timeout
 	 * @return
 	 */
-	public Packet recv(Packet pkt, long timeout){
+	public Packet recvPacket(Packet pkt, long timeout){
 		Pattern pattern = getPattern();
 		pattern.after(timeout);
 		return recvMessage(pkt, pattern);
+	}
+	
+	/**
+	 * 接收指定超时时间的只读数据
+	 * @param timeout
+	 * @param timeUnit
+	 * @return
+	 */
+	public Packet recvPacket(long timeout, TimeUnit timeUnit){
+		return recvPacket(Packet.NEW, timeout, timeUnit);
 	}
 
 	/**
@@ -437,10 +635,19 @@ public class Actor {
 	 * @param timeUnit
 	 * @return
 	 */
-	public Packet recv(Packet pkt, long timeout, TimeUnit timeUnit){
+	public Packet recvPacket(Packet pkt, long timeout, TimeUnit timeUnit){
 		Pattern pattern = getPattern();
 		pattern.after(timeout, timeUnit);
 		return recvMessage(pkt, pattern);
+	}
+
+	/**
+	 * 接收只读数据
+	 * @param pattern
+	 * @return
+	 */
+	public Packet recvPacket(Pattern pattern){
+		return recvPacket(Packet.NEW, pattern);
 	}
 
 	/**
@@ -449,21 +656,36 @@ public class Actor {
 	 * @param pattern
 	 * @return
 	 */
-	public Packet recv(Packet pkt, Pattern pattern){
+	public Packet recvPacket(Packet pkt, Pattern pattern){
 		return recvMessage(pkt, pattern);
 	}
 
 	///------------------------------------------------------------------------
-	/// 接收axExit消息
+	/// 接收退出消息
 	///------------------------------------------------------------------------
+	/**
+	 * 接收{@link MsgType#EXIT}消息
+	 * @return
+	 */
 	public ActorExit recvExit(){
 		return recvExit(Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
+	/**
+	 * 接收{@link MsgType#EXIT}消息
+	 * @param timeout
+	 * @return
+	 */
 	public ActorExit recvExit(long timeout){
 		return recvExit(timeout, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
+	/**
+	 * 接收{@link MsgType#EXIT}消息
+	 * @param timeout
+	 * @param timeUnit
+	 * @return
+	 */
 	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
 		Pattern pattern = getPattern();
 		pattern.match(MsgType.EXIT);
@@ -473,7 +695,9 @@ public class Actor {
 				return null;
 			}
 			
-			return msg.get(ActorExit.class);
+			ActorExit aex = msg.get(ActorExit.class);
+			aex.setSender(msg.getSender());
+			return aex;
 		}catch (Exception e){
 			return null;
 		}
@@ -483,7 +707,7 @@ public class Actor {
 	 * 运行Actor线程时，首先调用
 	 */
 	public void init(){
-		if (handler){
+		if (handler != null){
 			msgPool = MessagePool.getLocalPool(MessagePool.fetchInitList());
 		}
 	}
@@ -505,14 +729,18 @@ public class Actor {
 			return;
 		}
 
-		// 发送退出消息给所有链接的Actor
-		if (!CollectionUtils.isEmpty(linkList)){
-			for (ActorId aid : linkList){
-				send(aid, MsgType.EXIT, aex);
+		synchronized (this){
+			// 发送退出消息给所有链接的Actor
+			if (!ContainerUtils.isEmpty(linkList)){
+				for (ActorId aid : linkList){
+					send(aid, MsgType.EXIT, aex);
+				}
 			}
+			
+			exited = true;
 		}
 		
-		quited = true;
+		// 释放剩余未处理的消息
 		if (mailbox != null){
 			mailbox.clear();
 		}
@@ -537,37 +765,18 @@ public class Actor {
 	 * 是否已经退出
 	 * @return
 	 */
-	public boolean isQuited(){
-		return quited;
-	}
-	
-	/**
-	 * 发送消息
-	 * @param sender 发送者，可以为null
-	 * @param recver 接收者，不能为null
-	 * @param type 消息类型，可以为null
-	 * @param msg 消息
-	 */
-	public static boolean sendMessage(AxService axs, ActorId sender, ActorId recver, String type, Message msg){
-		Actor a = axs.getActor(recver);
-		if (a == null){
-			return false;
-		}
-		
-		msg.setSender(sender);
-		msg.setType(type);
-		a.addMessage(msg);
-		return true;
+	public boolean isExited(){
+		return exited;
 	}
 	
 	/**
 	 * 发送消息
 	 * @param sender
-	 * @param recver
+	 * @param recvAid
 	 * @param msg
 	 */
-	public static boolean sendMessage(AxService axs, ActorId recver, Message msg){
-		Actor a = axs.getActor(recver);
+	public static boolean sendMessage(AxSystem axs, ActorId recvAid, Message msg){
+		Actor a = axs.getActor(recvAid);
 		if (a == null){
 			return false;
 		}
@@ -579,9 +788,89 @@ public class Actor {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	public void addLink(ActorId target){
-		List<ActorId> linkList = getLinkList();
+	void addLink(ActorId target){
+		Set<ActorId> linkList = getLinkList();
 		linkList.add(target);
+	}
+
+	@Override
+	public void run() {
+		ActorExit aex = new ActorExit(ExitType.NORMAL, "no error");
+		try{
+			init();
+			handler.run(this);
+		}catch (Exception e){
+			aex.setExitType(ExitType.EXCEPT);
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			aex.setErrmsg(sw.toString());
+			pw.close();
+		}finally{
+			quit(aex);
+		}
+	}
+	
+	private void link(ActorId aid, boolean isMonitor){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		
+		Actor ax = axs.getActor(aid);
+		if (ax == null){
+			axs.send(aid, selfAid, MsgType.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+			return;
+		}
+		
+		String type = isMonitor ? MsgType.MONITOR : MsgType.LINK;
+		synchronized (ax){
+			// 获取锁后查一次此actor是否已经退出
+			if (ax.isExited()){
+				axs.send(aid, selfAid, MsgType.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+				return;
+			}
+			
+			if (!isMonitor){
+				// 将对方加入自己的link列表
+				addLink(aid);
+			}
+			// 将自己加入对方link列表
+			ax.addLink(selfAid);
+			// 给自己发送监视成功的消息
+			axs.send(aid, selfAid, type);
+		}
+	}
+	
+	private void sendMessage(ActorId recvAid, String type, Message msg){
+		msg.setSender(selfAid);
+		msg.setType(type);
+		
+		// 再尝试过滤按类型
+		if (!ContainerUtils.isEmpty(sendFilters)){
+			Set<ISendFilter> sendFilterSet = sendFilters.get(type);
+			if (!ContainerUtils.isEmpty(sendFilterSet)){
+				Message prevMsg = msg;
+				for (ISendFilter sendFilter : sendFilterSet){
+					Message filteredMsg = sendFilter.filterSend(recvAid, type, prevMsg, msg);
+					if (filteredMsg != prevMsg && prevMsg != null && prevMsg != msg){
+						prevMsg.release();
+					}
+					prevMsg = filteredMsg;
+					if (prevMsg != null){
+						prevMsg.resetRead();
+					}
+				}
+
+				if (msg != prevMsg){
+					msg.release();
+				}
+				msg = prevMsg;
+			}
+		}
+		
+		if (msg != null && !sendMessage(axs, recvAid, msg)){
+			msg.release();
+		}
 	}
 	
 	private void addMessage(Message msg){
@@ -589,7 +878,9 @@ public class Actor {
 	}
 	
 	private MessageGuard recvMessage(Pattern pattern){
-		assert !isQuited();
+		if (isExited()){
+			throw new IllegalStateException();
+		}
 		
 		List<String> matchedTypes = pattern.getMatchedTypes();
 		List<Object> matchedActors = pattern.getMatchedActors();
@@ -598,7 +889,7 @@ public class Actor {
 		
 		Message msg = null;
 		if (mailbox != null && !mailbox.isEmpty()){
-			IMail mail = mailbox.fetch(matchedTypes, matchedActors);
+			IMail mail = mailbox.fetch(matchedTypes, matchedActors, recvFilters);
 			if (mail != null){
 				msg = (Message) mail;
 				return returnMessage(msg);
@@ -618,8 +909,13 @@ public class Actor {
 				break;
 			}
 			
-			boolean typesEmpty = CollectionUtils.isEmpty(matchedTypes);
-			boolean actorsEmpty = CollectionUtils.isEmpty(matchedActors);
+			msg = Mailbox.filter(msg, recvFilters);
+			if (msg == null){
+				continue;
+			}
+			
+			boolean typesEmpty = ContainerUtils.isEmpty(matchedTypes);
+			boolean actorsEmpty = ContainerUtils.isEmpty(matchedActors);
 			if (typesEmpty && actorsEmpty){
 				break;
 			}
@@ -633,48 +929,7 @@ public class Actor {
 				}
 			}
 			
-			boolean found = false;
-			if (!typesEmpty){
-				String msgType = msg.getType();
-				for (String type : matchedTypes){
-					if (TypeComparator.compare(type, msgType) == 0){
-						found = true;
-						break;
-					}
-				}
-			}
-			
-			if (!found && !actorsEmpty){
-				String msgType = msg.getType();
-				ActorId msgSender = msg.getSender();
-				boolean matchedActor = false;
-				boolean hasTypes = false;
-				for (Object obj : matchedActors){
-					if (obj instanceof ActorId){
-						if (matchedActor && !hasTypes){
-							found = true;
-							break;
-						}
-						ActorId sender = (ActorId) obj;
-						matchedActor = ActorId.compare(sender, msgSender) == 0;
-						hasTypes = false;
-					}else if (obj instanceof String){
-						hasTypes = true;
-						if (matchedActor){
-							String type = (String) obj;
-							if (TypeComparator.compare(type, msgType) == 0){
-								found = true;
-								break;
-							}
-						}
-					}
-				}
-
-				if (matchedActor && !hasTypes){
-					found = true;
-				}
-			}
-			
+			boolean found = Mailbox.match(msg, matchedTypes, matchedActors);
 			if (found){
 				break;
 			}else{
@@ -708,7 +963,7 @@ public class Actor {
 	}
 	
 	private Message makeNewMessage(){
-		if (handler){
+		if (handler != null){
 			return Message.make(msgPool);
 		}else{
 			return Message.make();
@@ -716,7 +971,7 @@ public class Actor {
 	}
 	
 	private Message makeMessage(Message src){
-		if (handler){
+		if (handler != null){
 			if (src != null){
 				return Message.make(src, msgPool);
 			}else{
@@ -731,9 +986,9 @@ public class Actor {
 		}
 	}
 	
-	private List<ActorId> getLinkList(){
+	private Set<ActorId> getLinkList(){
 		if (linkList == null){
-			linkList = new ArrayList<ActorId>(5);
+			linkList = new HashSet<ActorId>();
 		}
 		return linkList;
 	}
@@ -752,5 +1007,19 @@ public class Actor {
 			pattern.clear();
 		}
 		return pattern;
+	}
+	
+	private Map<String, Set<ISendFilter>> getSendFilters(){
+		if (sendFilters == null){
+			sendFilters = new HashMap<String, Set<ISendFilter>>();
+		}
+		return sendFilters;
+	}
+	
+	private Map<String, Set<IRecvFilter>> getRecvFilters(){
+		if (recvFilters == null){
+			recvFilters = new HashMap<String, Set<IRecvFilter>>();
+		}
+		return recvFilters;
 	}
 }

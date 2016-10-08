@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx.util;
+package actorx.detail;
 
 import cque.INode;
 import cque.INodeFactory;

@@ -13,7 +13,7 @@ import cque.INode;
 public class MessageGuard implements AutoCloseable, INode {
 	private Message msg = null;
 
-	public MessageGuard wrap(Message msg){
+	MessageGuard wrap(Message msg){
 		this.msg = msg;
 		return this;
 	}

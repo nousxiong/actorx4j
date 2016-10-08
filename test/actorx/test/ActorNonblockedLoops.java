@@ -3,6 +3,7 @@
  */
 package actorx.test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -11,8 +12,8 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxService;
-import actorx.AbstractHandler;
+import actorx.AxSystem;
+import actorx.IActorHandler;
 import actorx.Message;
 import actorx.MessageGuard;
 import actorx.MessagePool;
@@ -29,7 +30,7 @@ public class ActorNonblockedLoops {
 	private static final int testCount = 1;
 	
 	@Test
-	public void test(){
+	public void test() throws IOException{
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
@@ -40,21 +41,21 @@ public class ActorNonblockedLoops {
 		System.out.printf("Eclipse time: %d ms\n", eclipse);
 	}
 
-	private long loop(){
-		AxService axs = new AxService("AXS");
+	private long loop() throws IOException{
+		AxSystem axs = new AxSystem("AXS");
 		axs.startup(concurr);
 
 		Actor consumer = axs.spawn();
 		
 		List<ActorId> producers = new ArrayList<ActorId>(concurr);
 		for (int i=0; i<concurr; ++i){
-			ActorId aid = axs.spawn(consumer, new AbstractHandler() {
+			ActorId aid = axs.spawn(consumer, new IActorHandler() {
 				@Override
 				public void run(Actor self){
-					Packet pkt = self.recv(Packet.NULL, "INIT");
+					Packet pkt = self.recvPacket("INIT");
 					ActorId consAid = pkt.getSender();
 					self.send(consAid, "READY");
-					self.recv(pkt, "START");
+					self.recvPacket(pkt, "START");
 					
 					for (int i=0; i<count; ++i){
 						self.send(consAid, "COUNT", i);
@@ -66,7 +67,7 @@ public class ActorNonblockedLoops {
 		
 		for (ActorId aid : producers){
 			consumer.send(aid, "INIT");
-			consumer.recv(Packet.NULL, "READY");
+			consumer.recvPacket("READY");
 		}
 
 		long bt = System.currentTimeMillis();

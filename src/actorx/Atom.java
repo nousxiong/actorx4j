@@ -13,7 +13,7 @@ public class Atom {
 	
 	/**
 	 * 字符串转long
-	 * @param str 64个合法ascii字符，见decodingTable成员
+	 * @param str 64个合法ascii字符，见{@link Atom#decodingTable}
 	 * @note 空格不能在首位
 	 * @return
 	 */
@@ -93,8 +93,8 @@ public class Atom {
 		}
 	}
 	
-	static final int bufferSize = 21;
-	static final long odd = 1L << 60;
+	private static final int bufferSize = 21;
+	private static final long odd = 1L << 60;
 	
 	private static ThreadLocal<byte[]> bufferTLS = new ThreadLocal<byte[]>();
 	private static ThreadLocal<byte[]> resultBufferTLS = new ThreadLocal<byte[]>();

@@ -3,9 +3,9 @@
  */
 package actorx;
 
-import actorx.util.CopyOnWriteBuffer;
-import actorx.util.IMail;
-import actorx.util.Pack;
+import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.IMail;
+import actorx.detail.Pack;
 import adata.Base;
 import adata.Stream;
 import cque.IFreer;
@@ -79,6 +79,36 @@ public class Message extends Pack implements INode, IMail {
 		}
 		return msg;
 	}
+	
+//	public static Message make(byte[] bytes){
+//		return make(bytes, 0, bytes.length, MessagePool.getLocalPool());
+//	}
+//	
+//	public static Message make(byte[] bytes, int offset, int length){
+//		return make(bytes, offset, length, MessagePool.getLocalPool());
+//	}
+//	
+//	public static Message make(byte[] bytes, MpscNodePool<Message> msgPool){
+//		return make(bytes, 0, bytes.length, msgPool);
+//	}
+//	
+//	public static Message make(byte[] bytes, int offset, int length, MpscNodePool<Message> msgPool){
+//		Message msg = make(msgPool);
+//		if (bytes == null){
+//			throw new NullPointerException();
+//		}
+//		
+//		if (length <= 0 || offset >= bytes.length){
+//			throw new ArrayIndexOutOfBoundsException();
+//		}
+//		
+//		msg.cowBuffer = CowBufferPool.get(length);
+//		byte[] cowBytes = msg.cowBuffer.getBuffer();
+//		System.arraycopy(bytes, offset, cowBytes, 0, length);
+//		msg.cowBuffer.write(length);
+//		msg.writeIndex = Integer.MAX_VALUE;
+//		return msg;
+//	}
 	
 	public void setSender(ActorId sender){
 		this.sender = sender;
@@ -161,7 +191,7 @@ public class Message extends Pack implements INode, IMail {
 	 * @note 调用此方法后，消息本身需要释放，已经不合法
 	 * @return
 	 */
-	public Packet move(Packet pkt){
+	Packet move(Packet pkt){
 		CopyOnWriteBuffer buffer = null;
 		if (cowBuffer != null){
 			buffer = cowBuffer;
@@ -173,6 +203,35 @@ public class Message extends Pack implements INode, IMail {
 		}
 		pkt.set(this, buffer);
 		return pkt;
+	}
+	
+	// 序列化所有的参数到buffer中，并返回；调用此方法后，消息本身需要释放，已经不合法
+	CopyOnWriteBuffer move(){
+		if (argsIsEmpty()){
+			return null;
+		}
+		
+		int length = argsLength();
+		if (cowBuffer == null){
+			cowBuffer = CowBufferPool.get(length);
+		}else{
+			CopyOnWriteBuffer newBuffer = cowBuffer.reserve(length);
+			if (newBuffer != cowBuffer){
+				cowBuffer.decrRef();
+				cowBuffer = newBuffer;
+			}else if (cowBuffer.getRefCount() > 1){
+				cowBuffer = cowBuffer.copyOnWrite();
+			}
+		}
+		// 将能序列化的对象序列化
+		writeArgs();
+		
+		CopyOnWriteBuffer buffer = null;
+		if (cowBuffer != null){
+			buffer = cowBuffer;
+			cowBuffer = null;
+		}
+		return buffer;
 	}
 	
 	private void copyOnWrite(){
@@ -345,8 +404,6 @@ public class Message extends Pack implements INode, IMail {
 	public void onGet(IFreer freer){
 		this.freer = freer;
 		this.next = null;
-		this.sender = ActorId.NULLAID;
-		this.type = MsgType.NULLTYPE;
 	}
 
 	@Override

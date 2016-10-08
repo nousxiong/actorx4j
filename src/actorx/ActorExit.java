@@ -9,6 +9,8 @@ package actorx;
  */
 public class ActorExit extends actorx.adl.ActorExit {
 	
+	private ActorId sender;
+	
 	public ActorExit(){
 		this(ExitType.NORMAL, "no error");
 	}
@@ -24,5 +26,13 @@ public class ActorExit extends actorx.adl.ActorExit {
 	
 	public ExitType getExitType(){
 		return ExitType.parse(type);
+	}
+
+	public ActorId getSender() {
+		return sender;
+	}
+
+	public void setSender(ActorId sender) {
+		this.sender = sender;
 	}
 }
