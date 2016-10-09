@@ -273,7 +273,6 @@ public class NetBase {
 						case MsgType.OPEN: {
 							AioSession as = msg.getRaw();
 							as.sendEcho("Hi, my name is AioClient!");
-							System.out.println("connect ok");
 						}break;
 						case MsgType.CONN_ERR: {
 							System.out.println("connect error");
@@ -322,7 +321,8 @@ public class NetBase {
 			for (int i=0; i<addrNum; ++i){
 				aioSvc.listen(new InetSocketAddress(startPort + i), new ListenSession(acceptNum));
 			}
-			
+
+			int acceptOk = 0;
 			Pattern pattern = new Pattern();
 			pattern.match(MsgType.OPEN, MsgType.ACCEPT_ERR, MsgType.RECV, MsgType.EXCEPT, MsgType.CLOSE);
 			
@@ -338,10 +338,9 @@ public class NetBase {
 						case MsgType.OPEN: {
 							AbstractListenSession ls = msg.getRaw();
 							lss.add(ls);
-							System.out.println("accept ok");
+							++acceptOk;
 						}break;
 						case MsgType.ACCEPT_ERR: {
-							System.out.println("accept error");
 							Throwable exc = msg.getRaw();
 							throw exc;
 						}
@@ -370,7 +369,7 @@ public class NetBase {
 				}catch (Throwable e){
 				}
 			}
-			System.out.println("AioServer exited.");
+			System.out.println("AioServer exited, acceptOk: "+acceptOk);
 		}
 		
 	}

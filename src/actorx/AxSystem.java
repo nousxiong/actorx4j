@@ -193,9 +193,6 @@ public class AxSystem {
 	public void send(ActorId fromAid, ActorId toAid){
 		Message msg = Message.make();
 		
-		if (fromAid == null){
-			fromAid = ActorId.NULLAID;
-		}
 		msg.setSender(fromAid);
 		if (!Actor.sendMessage(this, toAid, msg)){
 			msg.release();
@@ -217,9 +214,6 @@ public class AxSystem {
 		Message msg = Message.make();
 		msg.put(arg);
 		
-		if (fromAid == null){
-			fromAid = ActorId.NULLAID;
-		}
 		msg.setSender(fromAid);
 		msg.setType(type);
 		if (!Actor.sendMessage(this, toAid, msg)){
@@ -247,9 +241,6 @@ public class AxSystem {
 		msg.put(arg1);
 		msg.put(arg2);
 		
-		if (fromAid == null){
-			fromAid = ActorId.NULLAID;
-		}
 		msg.setSender(fromAid);
 		msg.setType(type);
 		if (!Actor.sendMessage(this, toAid, msg)){
@@ -282,9 +273,6 @@ public class AxSystem {
 		msg.put(arg2);
 		msg.put(arg3);
 		
-		if (fromAid == null){
-			fromAid = ActorId.NULLAID;
-		}
 		msg.setSender(fromAid);
 		msg.setType(type);
 		if (!Actor.sendMessage(this, toAid, msg)){
@@ -311,9 +299,6 @@ public class AxSystem {
 			}
 		}
 		
-		if (fromAid == null){
-			fromAid = ActorId.NULLAID;
-		}
 		msg.setSender(fromAid);
 		msg.setType(type);
 		if (!Actor.sendMessage(this, toAid, msg)){

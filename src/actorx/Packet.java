@@ -14,7 +14,7 @@ import adata.Base;
 public class Packet extends Pack {
 	private CopyOnWriteBuffer cowBuffer;
 	
-	public static final Packet NEW = null;
+	public static final Packet NULL = null;
 
 	@Override
 	public void clear(){

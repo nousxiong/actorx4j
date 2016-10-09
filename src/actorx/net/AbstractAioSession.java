@@ -8,8 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.Addon;
 import actorx.MsgType;
 import actorx.net.AioService.ReadHandler;
 import actorx.net.AioService.WriteHandler;
@@ -27,8 +26,7 @@ public abstract class AbstractAioSession {
 	private ByteBuffer writeBuffer;
 	private int lastPosition = 0;
 	private Queue<ByteBuffer> sendQueue = new ConcurrentLinkedQueue<ByteBuffer>();
-	private AxSystem axs;
-	private ActorId hostAid;
+	private Addon addon;
 	private boolean msgReadEnd = false;
 	private boolean writing = false;
 	private boolean reading = false;
@@ -56,11 +54,11 @@ public abstract class AbstractAioSession {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	void onOpen(AxSystem axs, ActorId hostAid, ReadHandler readHandler, WriteHandler writeHandler){
-		this.axs = axs;
-		this.hostAid = hostAid;
+	void onOpen(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+		this.addon = addon;
 		this.readHandler = readHandler;
 		this.writeHandler = writeHandler;
+		reading = true;
 		asyncRead();
 	}
 
@@ -87,7 +85,7 @@ public abstract class AbstractAioSession {
 	void onRead(int result){
 		if (result < 0){
 			closesocket();
-			axs.send(null, hostAid, AioService.PEER_CLOSE, this);
+			addon.send(AioService.PEER_CLOSE, this);
 			return;
 		}
 		
@@ -103,8 +101,8 @@ public abstract class AbstractAioSession {
 	
 	void onReadFailed(Throwable exc){
 		closesocket();
-		axs.send(null, hostAid, AioService.READ_ERR, this);
-		axs.send(null, hostAid, MsgType.EXCEPT, exc, this);
+		addon.send(AioService.READ_ERR, this);
+		addon.send(MsgType.EXCEPT, exc, this);
 	}
 	
 	void onWrite(int result){
@@ -113,24 +111,30 @@ public abstract class AbstractAioSession {
 		}
 		
 		if (!asyncWrite()){
-			axs.send(null, hostAid, AioService.WRITE_END, this);
+			addon.send(AioService.WRITE_END, this);
 		}
 	}
 	
 	void onWriteFailed(Throwable exc){
 		closesocket();
-		axs.send(null, hostAid, AioService.WRITE_ERR, this);
-		axs.send(null, hostAid, MsgType.EXCEPT, exc, this);
+		addon.send(AioService.WRITE_ERR, this);
+		addon.send(MsgType.EXCEPT, exc, this);
 	}
 	
 	void onFilterRecv(String type){
-		if (MsgType.equals(type, AioService.PEER_CLOSE) || MsgType.equals(type, AioService.READ_ERR)){
-			reading = false;
-		}else if (MsgType.equals(type, AioService.WRITE_END) || MsgType.equals(type, AioService.WRITE_ERR)) {
-			writing = false;
-			if (closing && MsgType.equals(type, AioService.WRITE_END)){
-				closesocket();
+		switch (type){
+			case AioService.PEER_CLOSE:
+			case AioService.READ_ERR: {
+				reading = false;
+			}break;
+			case AioService.WRITE_END: {
+				if (closing){
+					closesocket();
+				}
 			}
+			case AioService.WRITE_ERR: {
+				writing = false;
+			}break;
 		}
 		tryClose();
 	}
@@ -138,7 +142,7 @@ public abstract class AbstractAioSession {
 	private void tryClose(){
 		if (!reading && !writing && !closed){
 			closed = true;
-			axs.send(null, hostAid, MsgType.CLOSE, this);
+			addon.send(MsgType.CLOSE, this);
 		}
 	}
 	
@@ -219,22 +223,22 @@ public abstract class AbstractAioSession {
 	}
 	
 	protected void sendReadResult(){
-		axs.send(null, hostAid, MsgType.RECV, this);
+		addon.send(MsgType.RECV, this);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg){
-		axs.send(null, hostAid, MsgType.RECV, this, arg);
+		addon.send(MsgType.RECV, this, arg);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg1, Object arg2){
-		axs.send(null, hostAid, MsgType.RECV, this, arg1, arg2);
+		addon.send(MsgType.RECV, this, arg1, arg2);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg1, Object arg2, Object arg3){
-		axs.send(null, hostAid, MsgType.RECV, this, arg1, arg2, arg3);
+		addon.send(MsgType.RECV, this, arg1, arg2, arg3);
 		msgReadEnd = true;
 	}
 	

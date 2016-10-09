@@ -9,6 +9,8 @@ package actorx;
 public class ActorId extends actorx.adl.ActorId {
 	// 空ActorId
 	public static final ActorId NULLAID = new ActorId(0, 0, 0, 0);
+	// null ActorId
+	public static final ActorId NULL = null;
 	
 	public ActorId(long axid, long timestamp, long id, long sid){
 		this.axid = axid;

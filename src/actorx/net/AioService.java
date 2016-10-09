@@ -10,10 +10,9 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.Addon;
 import actorx.IRecvFilter;
 import actorx.Message;
 import actorx.MsgType;
@@ -23,16 +22,15 @@ import actorx.MsgType;
  * @creation 2016年10月6日上午12:38:56
  *
  */
-public class AioService implements IRecvFilter {
+public class AioService extends Addon implements IRecvFilter {
 
 	public AioService(Actor hostAx) throws IOException{
-		this.chanGroup = hostAx.getAxSystem().getChannelGroup();
-		AxSystem axs = hostAx.getAxSystem();
-		ActorId hostAid = hostAx.getActorId();
+		super(hostAx);
+		this.chanGroup = super.getAxSystem().getChannelGroup();
 		this.readHandler = new ReadHandler();
 		this.writeHandler = new WriteHandler();
-		this.acceptHandler = new AcceptHandler(axs, hostAid, readHandler, writeHandler);
-		this.connectHandler = new ConnectHandler(axs, hostAid, readHandler, writeHandler);
+		this.acceptHandler = new AcceptHandler(this, readHandler, writeHandler);
+		this.connectHandler = new ConnectHandler(this, readHandler, writeHandler);
 		hostAx.addRecvFilter(PEER_CLOSE, this);
 		hostAx.addRecvFilter(READ_ERR, this);
 		hostAx.addRecvFilter(WRITE_END, this);
@@ -48,7 +46,6 @@ public class AioService implements IRecvFilter {
 		skt.setOption(StandardSocketOptions.SO_REUSEADDR, opt.socketOptions.soReuseAddr);
 		skt.setOption(StandardSocketOptions.SO_RCVBUF, opt.socketOptions.soRcvBuf);
 		skt.setOption(StandardSocketOptions.SO_SNDBUF, opt.socketOptions.soSndBuf);
-//		skt.setOption(StandardSocketOptions.SO_LINGER, opt.socketOptions.soLinger);
 		skt.setOption(StandardSocketOptions.TCP_NODELAY, opt.socketOptions.tcpNodelay);
 		as.setSocket(skt);
 		skt.connect(opt.inetSocketAddress, as, connectHandler);
@@ -76,6 +73,7 @@ public class AioService implements IRecvFilter {
 		return inetSocketAddress;
 	}
 	
+	@Override
 	public Message filterRecv(ActorId fromAid, String type, Message prevMsg, Message srcMsg){
 		AbstractAioSession as = prevMsg.getRaw();
 		as.onFilterRecv(type);
@@ -111,14 +109,12 @@ public class AioService implements IRecvFilter {
 	}
 	
 	static class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AbstractListenSession> {
-		private AxSystem axs;
-		private ActorId hostAid;
+		private Addon addon;
 		private ReadHandler readHandler;
 		private WriteHandler writeHandler;
 		
-		public AcceptHandler(AxSystem axs, ActorId hostAid, ReadHandler readHandler, WriteHandler writeHandler){
-			this.axs = axs;
-			this.hostAid = hostAid;
+		public AcceptHandler(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+			this.addon = addon;
 			this.readHandler = readHandler;
 			this.writeHandler = writeHandler;
 		}
@@ -127,41 +123,39 @@ public class AioService implements IRecvFilter {
 		public void completed(AsynchronousSocketChannel result, AbstractListenSession attachment) {
 			attachment.getAcceptor().accept(attachment, this);
 			AbstractAioSession as = attachment.makeAioSession(result);
-			as.onOpen(axs, hostAid, readHandler, writeHandler);
-			axs.send(null, hostAid, MsgType.OPEN, attachment, as);
+			as.onOpen(addon, readHandler, writeHandler);
+			addon.send(MsgType.OPEN, attachment, as);
 		}
 
 		@Override
 		public void failed(Throwable exc, AbstractListenSession attachment) {
 			attachment.close();
-			axs.send(null, hostAid, MsgType.ACCEPT_ERR, exc, attachment);
+			addon.send(MsgType.ACCEPT_ERR, exc, attachment);
 		}
 		
 	}
 	
 	static class ConnectHandler implements CompletionHandler<Void, AbstractAioSession> {
-		private AxSystem axs;
-		private ActorId hostAid;
+		private Addon addon;
 		private ReadHandler readHandler;
 		private WriteHandler writeHandler;
 		
-		public ConnectHandler(AxSystem axs, ActorId hostAid, ReadHandler readHandler, WriteHandler writeHandler){
-			this.axs = axs;
-			this.hostAid = hostAid;
+		public ConnectHandler(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+			this.addon = addon;
 			this.readHandler = readHandler;
 			this.writeHandler = writeHandler;
 		}
 
 		@Override
 		public void completed(Void result, AbstractAioSession attachment) {
-			attachment.onOpen(axs, hostAid, readHandler, writeHandler);
-			axs.send(null, hostAid, MsgType.OPEN, attachment);
+			attachment.onOpen(addon, readHandler, writeHandler);
+			addon.send(MsgType.OPEN, attachment);
 		}
 
 		@Override
 		public void failed(Throwable exc, AbstractAioSession attachment) {
 			attachment.closesocket();
-			axs.send(null, hostAid, MsgType.CONN_ERR, exc, attachment);
+			addon.send(MsgType.CONN_ERR, exc, attachment);
 		}
 		
 	}

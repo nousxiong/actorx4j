@@ -96,24 +96,24 @@ public class Actor implements Runnable {
 	
 	/**
 	 * 发送一个空消息
-	 * @param aid
+	 * @param toAid
 	 */
-	public void send(ActorId aid){
+	public void send(ActorId toAid){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
 		
 		Message msg = makeNewMessage();
-		sendMessage(aid, MsgType.NULLTYPE, msg);
+		sendMessage(toAid, MsgType.NULLTYPE, msg);
 	}
 	
 	/**
 	 * 发送消息
-	 * @param aid
+	 * @param toAid
 	 * @param type
 	 * @param arg
 	 */
-	public <A> void send(ActorId aid, String type, A arg){
+	public <A> void send(ActorId toAid, String type, A arg){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -123,17 +123,17 @@ public class Actor implements Runnable {
 		
 		Message msg = makeNewMessage();
 		msg.put(arg);
-		sendMessage(aid, type, msg);
+		sendMessage(toAid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
-	 * @param aid
+	 * @param toAid
 	 * @param type
 	 * @param arg1
 	 * @param arg2
 	 */
-	public <A1, A2> void send(ActorId aid, String type, A1 arg1, A2 arg2){
+	public <A1, A2> void send(ActorId toAid, String type, A1 arg1, A2 arg2){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -147,18 +147,18 @@ public class Actor implements Runnable {
 		Message msg = makeNewMessage();
 		msg.put(arg1);
 		msg.put(arg2);
-		sendMessage(aid, type, msg);
+		sendMessage(toAid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
-	 * @param aid
+	 * @param toAid
 	 * @param type
 	 * @param arg1
 	 * @param arg2
 	 * @param arg3
 	 */
-	public <A1, A2, A3> void send(ActorId aid, String type, A1 arg1, A2 arg2, A3 arg3){
+	public <A1, A2, A3> void send(ActorId toAid, String type, A1 arg1, A2 arg2, A3 arg3){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -176,16 +176,16 @@ public class Actor implements Runnable {
 		msg.put(arg1);
 		msg.put(arg2);
 		msg.put(arg3);
-		sendMessage(aid, type, msg);
+		sendMessage(toAid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
-	 * @param aid
+	 * @param toAid
 	 * @param type
 	 * @param args 可以为null
 	 */
-	public void send(ActorId aid, String type, Object... args){
+	public void send(ActorId toAid, String type, Object... args){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -201,15 +201,15 @@ public class Actor implements Runnable {
 			}
 		}
 		
-		sendMessage(aid, type, msg);
+		sendMessage(toAid, type, msg);
 	}
 	
 	/**
 	 * 发送消息
-	 * @param aid 接收者
+	 * @param toAid 接收者
 	 * @param msg
 	 */
-	public void send(ActorId aid, Message src){
+	public void send(ActorId toAid, Message src){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -218,15 +218,15 @@ public class Actor implements Runnable {
 		}
 
 		Message msg = makeMessage(src);
-		sendMessage(aid, msg.getType(), msg);
+		sendMessage(toAid, msg.getType(), msg);
 	}
 	
 	/**
 	 * 转发一个消息；被转发的消息的sender会保持原始的sender
-	 * @param aid
+	 * @param toAid
 	 * @param msg
 	 */
-	public void relay(ActorId aid, Message src){
+	public void relay(ActorId toAid, Message src){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -235,7 +235,7 @@ public class Actor implements Runnable {
 		}
 		
 		Message msg = makeMessage(src);
-		sendMessage(aid, msg.getType(), msg);
+		sendMessage(toAid, msg.getType(), msg);
 	}
 	
 	/**
@@ -425,7 +425,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(String type){
-		return recvPacket(Packet.NEW, type);
+		return recvPacket(Packet.NULL, type);
 	}
 	
 	/**
@@ -447,7 +447,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(String type1, String type2){
-		return recvPacket(Packet.NEW, type1, type2);
+		return recvPacket(Packet.NULL, type1, type2);
 	}
 	
 	/**
@@ -470,7 +470,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(String... types){
-		return recvPacket(Packet.NEW, types);
+		return recvPacket(Packet.NULL, types);
 	}
 	
 	/**
@@ -493,7 +493,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(ActorId sender){
-		return recvPacket(Packet.NEW, sender);
+		return recvPacket(Packet.NULL, sender);
 	}
 	
 	/**
@@ -515,7 +515,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(ActorId sender, String type){
-		return recvPacket(Packet.NEW, sender, type);
+		return recvPacket(Packet.NULL, sender, type);
 	}
 	
 	/**
@@ -539,7 +539,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(ActorId sender, String type1, String type2){
-		return recvPacket(Packet.NEW, sender, type1, type2);
+		return recvPacket(Packet.NULL, sender, type1, type2);
 	}
 	
 	/**
@@ -563,7 +563,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(ActorId sender, String... types){
-		return recvPacket(Packet.NEW, sender, types);
+		return recvPacket(Packet.NULL, sender, types);
 	}
 	
 	/**
@@ -584,7 +584,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(){
-		return recvPacket(Packet.NEW);
+		return recvPacket(Packet.NULL);
 	}
 
 	/**
@@ -603,7 +603,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(long timeout){
-		return recvPacket(Packet.NEW, timeout);
+		return recvPacket(Packet.NULL, timeout);
 	}
 
 	/**
@@ -625,7 +625,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(long timeout, TimeUnit timeUnit){
-		return recvPacket(Packet.NEW, timeout, timeUnit);
+		return recvPacket(Packet.NULL, timeout, timeUnit);
 	}
 
 	/**
@@ -647,7 +647,7 @@ public class Actor implements Runnable {
 	 * @return
 	 */
 	public Packet recvPacket(Pattern pattern){
-		return recvPacket(Packet.NEW, pattern);
+		return recvPacket(Packet.NULL, pattern);
 	}
 
 	/**
