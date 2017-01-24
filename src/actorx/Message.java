@@ -3,13 +3,14 @@
  */
 package actorx;
 
+import actorx.util.IMail;
 import cque.IFreer;
 import cque.INode;
 
 /**
  * @author Xiong
  */
-public class Message implements INode {
+public class Message implements INode, IMail {
 	private ActorId sender;
 	private String type;
 	private Object[] args;
@@ -115,6 +116,13 @@ public class Message implements INode {
 		type = null;
 		next = null;
 		freer = null;
+		
+		totalNext = null;
+		totalPrev = null;
+		typeNext = null;
+		typePrev = null;
+		typeSameNext = null;
+		typeSamePrev = null;
 	}
 
 	@Override
@@ -126,5 +134,78 @@ public class Message implements INode {
 	@Override
 	public void setNext(INode next){
 		this.next = next;
+	}
+	
+	/** 以下实现IMail接口 */
+	private IMail totalNext;
+	private IMail totalPrev;
+	private IMail typeNext;
+	private IMail typePrev;
+	private IMail typeSameNext;
+	private IMail typeSamePrev;
+	
+	@Override
+	public void setTotalNext(IMail next) {
+		totalNext = next;
+	}
+
+	@Override
+	public IMail getTotalNext() {
+		return totalNext;
+	}
+
+	@Override
+	public void setTotalPrev(IMail prev) {
+		totalPrev = prev;
+	}
+
+	@Override
+	public IMail getTotalPrev() {
+		return totalPrev;
+	}
+
+	@Override
+	public void setTypeNext(IMail next) {
+		typeNext = next;
+	}
+
+	@Override
+	public IMail getTypeNext() {
+		return typeNext;
+	}
+
+	@Override
+	public void setTypePrev(IMail prev) {
+		typePrev = prev;
+	}
+
+	@Override
+	public IMail getTypePrev() {
+		return typePrev;
+	}
+
+	@Override
+	public void setTypeSameNext(IMail next) {
+		typeSameNext = next;
+	}
+
+	@Override
+	public IMail getTypeSameNext() {
+		return typeSameNext;
+	}
+
+	@Override
+	public void setTypeSamePrev(IMail prev) {
+		typeSamePrev = prev;
+	}
+
+	@Override
+	public IMail getTypeSamePrev() {
+		return typeSamePrev;
+	}
+
+	@Override
+	public void onClear() {
+		this.release();
 	}
 }
