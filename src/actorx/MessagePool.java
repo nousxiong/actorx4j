@@ -3,7 +3,7 @@
  */
 package actorx;
 
-import actorx.util.MessageFactory;
+import actorx.detail.MessageFactory;
 import cque.ConcurrentNodePool;
 import cque.MpscNodePool;
 

@@ -3,7 +3,7 @@
  */
 package actorx;
 
-import actorx.util.IMail;
+import actorx.detail.IMail;
 import cque.IFreer;
 import cque.INode;
 

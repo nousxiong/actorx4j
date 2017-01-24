@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx.util;
+package actorx.detail;
 
 import actorx.Message;
 import cque.INode;

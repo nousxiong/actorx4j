@@ -1,12 +1,13 @@
 /**
  * 
  */
-package actorx.util;
+package actorx.detail;
 
 import java.util.List;
 
 import actorx.Message;
 import actorx.MessageType;
+import actorx.util.ContainerUtils;
 
 /**
  * @author Xiong
