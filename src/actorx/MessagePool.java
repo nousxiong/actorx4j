@@ -13,8 +13,7 @@ import cque.MpscNodePool;
  */
 public class MessagePool {
 	/** 消息节点池 */
-	private static final ConcurrentNodePool<Message> cpool = 
-		new ConcurrentNodePool<Message>(new MessageFactory());
+	private static ConcurrentNodePool<Message> cpool;
 	
 	/**
 	 * 初始化size
@@ -22,7 +21,17 @@ public class MessagePool {
 	 * @param maxSize
 	 */
 	public static void init(int initSize, int maxSize){
-		assert cpool != null;
+		init(initSize, maxSize, 0);
+	}
+	
+	/**
+	 * 初始化size
+	 * @param initSize
+	 * @param maxSize
+	 * @param reserve
+	 */
+	public static void init(int initSize, int maxSize, int reserve){
+		cpool = new ConcurrentNodePool<Message>(new MessageFactory(reserve));
 		cpool.setInitSize(initSize);
 		cpool.setMaxSize(maxSize);
 	}

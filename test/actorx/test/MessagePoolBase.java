@@ -26,7 +26,7 @@ public class MessagePoolBase {
 	
 	@Test
 	public void test(){
-		MessagePool.init(1000, Integer.MAX_VALUE);
+		MessagePool.init(1000, Integer.MAX_VALUE, 2);
 		Context ctx = Context.getInstance();
 		ctx.startup();
 		
@@ -39,7 +39,7 @@ public class MessagePoolBase {
 					MpscNodePool<Message> pool = MessagePool.getLocalPool();
 					for (int i=0; i<count; ++i){
 						Message msg = MessagePool.get(pool);
-						self.send(sender, msg, "test");
+						self.send(sender, msg, "TEST", i, "arg1");
 					}
 				}
 			});
@@ -51,7 +51,8 @@ public class MessagePoolBase {
 		
 		for (int i=0; i<concurr*count; ++i){
 			Message msg = base.recv();
-			assertTrue(msg.getType().equals("test"));
+			assertTrue("TEST".equals(msg.getType()));
+			assertTrue("arg1".equals(msg.get(1)));
 			msg.release();
 		}
 		

@@ -12,8 +12,15 @@ import cque.INodeFactory;
  *
  */
 public class MessageFactory implements INodeFactory {
+	
+	public MessageFactory(int reserve){
+		this.reserve = reserve;
+	}
+	
 	@Override
 	public INode createInstance() {
-		return new Message();
+		return new Message(reserve);
 	}
+	
+	private int reserve;
 }

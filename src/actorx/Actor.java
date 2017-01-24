@@ -26,7 +26,7 @@ public class Actor {
 	private boolean quited = false;
 	
 	public Actor(ActorId aid){
-		this.selfAid = aid;
+		selfAid = aid;
 	}
 	
 	/**
@@ -34,9 +34,14 @@ public class Actor {
 	 * @param aid
 	 */
 	public void send(ActorId aid){
-		assert !isQuited();
-		assert aid != null;
-		sendMessage(this.getActorId(), aid);
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		
+		sendMessage(selfAid, aid);
 	}
 	
 	/**
@@ -46,9 +51,63 @@ public class Actor {
 	 * @param args 可以无参数
 	 */
 	public void send(ActorId aid, String type, Object... args){
-		assert !isQuited();
-		assert aid != null;
-		sendMessage(this.getActorId(), aid, type, args);
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type, args);
+	}
+	
+	public void send(ActorId aid, String type){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type);
+	}
+	
+	public void send(ActorId aid, String type, Object arg){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type, arg);
+	}
+	
+	public void send(ActorId aid, String type, Object arg, Object arg1){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type, arg, arg1);
+	}
+	
+	public void send(ActorId aid, String type, Object arg, Object arg1, Object arg2){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type, arg, arg1, arg2);
+	}
+	
+	public void send(ActorId aid, String type, Object arg, Object arg1, Object arg2, Object arg3){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, type, arg, arg1, arg2, arg3);
 	}
 	
 	/**
@@ -57,7 +116,16 @@ public class Actor {
 	 * @param msg
 	 */
 	public void send(ActorId aid, Message msg){
-		send(aid, msg, (String) null);
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg);
 	}
 	
 	/**
@@ -66,10 +134,81 @@ public class Actor {
 	 * @param msg
 	 */
 	public void send(ActorId aid, Message msg, String type, Object... args){
-		assert !isQuited();
-		assert aid != null;
-		assert msg != null;
-		sendMessage(this.getActorId(), aid, msg, type, args);
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type, args);
+	}
+	
+	public void send(ActorId aid, Message msg, String type){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type);
+	}
+	
+	public void send(ActorId aid, Message msg, String type, Object arg){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type, arg);
+	}
+	
+	public void send(ActorId aid, Message msg, String type, Object arg, Object arg1){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type, arg, arg1);
+	}
+	
+	public void send(ActorId aid, Message msg, String type, Object arg, Object arg1, Object arg2){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type, arg, arg1, arg2);
+	}
+	
+	public void send(ActorId aid, Message msg, String type, Object arg, Object arg1, Object arg2, Object arg3){
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(selfAid, aid, msg, type, arg, arg1, arg2, arg3);
 	}
 	
 	/**
@@ -78,8 +217,12 @@ public class Actor {
 	 * @param msg
 	 */
 	public void relay(ActorId aid, Message msg){
-		assert !isQuited();
-		assert aid != null;
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
+		if (aid == null){
+			throw new NullPointerException();
+		}
 		relayMessage(aid, msg);
 	}
 	
@@ -89,10 +232,38 @@ public class Actor {
 	 * @return
 	 */
 	public Actor match(String... types){
-		assert !isQuited();
+		if (isQuited()){
+			throw new IllegalStateException();
+		}
 		for (String type : types){
 			matchedTypes.add(type);
 		}
+		return this;
+	}
+	
+	public Actor match(String type){
+		matchedTypes.add(type);
+		return this;
+	}
+	
+	public Actor match(String type, String type1){
+		matchedTypes.add(type);
+		matchedTypes.add(type1);
+		return this;
+	}
+	
+	public Actor match(String type, String type1, String type2){
+		matchedTypes.add(type);
+		matchedTypes.add(type1);
+		matchedTypes.add(type2);
+		return this;
+	}
+	
+	public Actor match(String type, String type1, String type2, String type3){
+		matchedTypes.add(type);
+		matchedTypes.add(type1);
+		matchedTypes.add(type2);
+		matchedTypes.add(type3);
 		return this;
 	}
 	
@@ -201,7 +372,7 @@ public class Actor {
 		ctx.removeActor(selfAid);
 		
 		for (ActorId aid : linkList){
-			sendMessage(this.getActorId(), aid, MessageType.EXIT, et, errmsg);
+			send(aid, MessageType.EXIT, et, errmsg);
 		}
 		quited = true;
 		mailbox.clear();
@@ -249,6 +420,47 @@ public class Actor {
 		sendMessage(recver, new Message(sender, type, args));
 	}
 	
+	public static void sendMessage(ActorId sender, ActorId recver, String type){
+		sendMessage(recver, new Message(sender, type));
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, String type, Object arg){
+		Message msg = new Message(sender, type);
+		msg.reserve(1);
+		msg.set(0, arg);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, String type, Object arg, Object arg1){
+		Message msg = new Message(sender, type);
+		msg.reserve(2);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, String type, Object arg, Object arg1, Object arg2){
+		Message msg = new Message(sender, type);
+		msg.reserve(3);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		msg.set(2, arg2);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(
+		ActorId sender, ActorId recver, String type, 
+		Object arg, Object arg1, Object arg2, Object arg3
+	){
+		Message msg = new Message(sender, type);
+		msg.reserve(4);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		msg.set(2, arg2);
+		msg.set(3, arg3);
+		sendMessage(recver, msg);
+	}
+	
 	/**
 	 * 发送消息
 	 * @param sender
@@ -261,6 +473,56 @@ public class Actor {
 		msg.setSender(sender);
 		msg.setType(type);
 		msg.set(args);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, Message msg, String type){
+		msg.setSender(sender);
+		msg.setType(type);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, Message msg, String type, Object arg){
+		msg.setSender(sender);
+		msg.setType(type);
+		msg.reserve(1);
+		msg.set(0, arg);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(ActorId sender, ActorId recver, Message msg, String type, Object arg, Object arg1){
+		msg.setSender(sender);
+		msg.setType(type);
+		msg.reserve(2);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(
+		ActorId sender, ActorId recver, Message msg, String type, 
+		Object arg, Object arg1, Object arg2
+	){
+		msg.setSender(sender);
+		msg.setType(type);
+		msg.reserve(3);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		msg.set(2, arg2);
+		sendMessage(recver, msg);
+	}
+	
+	public static void sendMessage(
+		ActorId sender, ActorId recver, Message msg, String type, 
+		Object arg, Object arg1, Object arg2, Object arg3
+	){
+		msg.setSender(sender);
+		msg.setType(type);
+		msg.reserve(4);
+		msg.set(0, arg);
+		msg.set(1, arg1);
+		msg.set(2, arg2);
+		msg.set(3, arg3);
 		sendMessage(recver, msg);
 	}
 	
@@ -281,27 +543,6 @@ public class Actor {
 	 */
 	public static void sendMessage(ActorId sender, ActorId recver, Message msg){
 		sendMessage(sender, recver, msg, (String) null);
-	}
-
-	/**
-	 * 使用空的sender发送消息
-	 * @param recver
-	 * @param type
-	 * @param args
-	 */
-	public static void sendMessage(ActorId recver, String type, Object... args){
-		sendMessage((ActorId) null, recver, type, args);
-	}
-	
-	/**
-	 * 使用空的sender发送消息
-	 * @param recver
-	 * @param msg
-	 * @param type
-	 * @param args
-	 */
-	public static void sendMessage(ActorId recver, Message msg, String type, Object... args){
-		sendMessage((ActorId) null, recver, msg, type, args);
 	}
 	
 	///------------------------------------------------------------------------
