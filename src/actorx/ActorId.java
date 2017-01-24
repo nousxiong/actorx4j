@@ -7,6 +7,8 @@ package actorx;
  * @author Xiong
  */
 public class ActorId {
+	public static final ActorId NULL = null;
+	
 	/** 唯一id */
 	private final long id;
 	

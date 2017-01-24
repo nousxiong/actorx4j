@@ -14,6 +14,8 @@ import cque.IntrusiveMpscQueue;
  * @author Xiong
  */
 public class Actor {
+	public static final Actor NULL = null;
+	
 	private ActorId selfAid = null;
 	/**自己退出时需要发送EXIT消息的列表*/
 	private List<ActorId> linkList = new ArrayList<ActorId>(1);

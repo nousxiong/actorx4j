@@ -3,6 +3,8 @@
  */
 package actorx;
 
+import java.util.Arrays;
+
 import actorx.detail.IMail;
 import cque.IFreer;
 import cque.INode;
@@ -11,6 +13,8 @@ import cque.INode;
  * @author Xiong
  */
 public class Message implements INode, IMail {
+	public static final Message NULL = null;
+	
 	private ActorId sender;
 	private String type;
 	private Object[] args;
@@ -114,6 +118,9 @@ public class Message implements INode, IMail {
 	public void onFree(){
 		sender = null;
 		type = null;
+		if (args != null){
+			Arrays.fill(args, null);
+		}
 		next = null;
 		freer = null;
 		
