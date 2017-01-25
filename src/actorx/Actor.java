@@ -25,7 +25,7 @@ import cque.SimpleNodePool;
  */
 public class Actor implements Runnable {
 	// AxSystem
-	private AxSystem axs;
+	private ActorSystem axs;
 	// ActorId
 	private ActorId selfAid = null;
 	// handler
@@ -56,7 +56,7 @@ public class Actor implements Runnable {
 	 * @param axs
 	 * @param aid
 	 */
-	public Actor(AxSystem axs, ActorId aid, IActorHandler handler){
+	public Actor(ActorSystem axs, ActorId aid, IActorHandler handler){
 		this.axs = axs;
 		this.selfAid = aid;
 		this.handler = handler;
@@ -66,7 +66,7 @@ public class Actor implements Runnable {
 	 * 返回AxSystem
 	 * @return
 	 */
-	public AxSystem getAxSystem(){
+	public ActorSystem getAxSystem(){
 		return axs;
 	}
 	
@@ -130,23 +130,23 @@ public class Actor implements Runnable {
 	 * 发送消息
 	 * @param toAid
 	 * @param type
+	 * @param arg
 	 * @param arg1
-	 * @param arg2
 	 */
-	public <A1, A2> void send(ActorId toAid, String type, A1 arg1, A2 arg2){
+	public <A, A1> void send(ActorId toAid, String type, A arg, A1 arg1){
 		if (isExited()){
 			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
 		}
 		if (arg1 == null){
 			throw new NullPointerException();
 		}
-		if (arg2 == null){
-			throw new NullPointerException();
-		}
 		
 		Message msg = makeNewMessage();
+		msg.put(arg);
 		msg.put(arg1);
-		msg.put(arg2);
 		sendMessage(toAid, type, msg);
 	}
 	
@@ -154,13 +154,16 @@ public class Actor implements Runnable {
 	 * 发送消息
 	 * @param toAid
 	 * @param type
+	 * @param arg
 	 * @param arg1
 	 * @param arg2
-	 * @param arg3
 	 */
-	public <A1, A2, A3> void send(ActorId toAid, String type, A1 arg1, A2 arg2, A3 arg3){
+	public <A, A1, A2> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
 		if (isExited()){
 			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
 		}
 		if (arg1 == null){
 			throw new NullPointerException();
@@ -168,14 +171,11 @@ public class Actor implements Runnable {
 		if (arg2 == null){
 			throw new NullPointerException();
 		}
-		if (arg3 == null){
-			throw new NullPointerException();
-		}
 		
 		Message msg = makeNewMessage();
+		msg.put(arg);
 		msg.put(arg1);
 		msg.put(arg2);
-		msg.put(arg3);
 		sendMessage(toAid, type, msg);
 	}
 	
@@ -446,8 +446,8 @@ public class Actor implements Runnable {
 	 * @param type2
 	 * @return
 	 */
-	public Packet recvPacket(String type1, String type2){
-		return recvPacket(Packet.NULL, type1, type2);
+	public Packet recvPacket(String type, String type1){
+		return recvPacket(Packet.NULL, type, type1);
 	}
 	
 	/**
@@ -457,10 +457,10 @@ public class Actor implements Runnable {
 	 * @param type2
 	 * @return
 	 */
-	public Packet recvPacket(Packet pkt, String type1, String type2){
+	public Packet recvPacket(Packet pkt, String type, String type1){
 		Pattern pattern = getPattern();
+		pattern.match(type);
 		pattern.match(type1);
-		pattern.match(type2);
 		return recvMessage(pkt, pattern);
 	}
 
@@ -538,8 +538,8 @@ public class Actor implements Runnable {
 	 * @param type2
 	 * @return
 	 */
-	public Packet recvPacket(ActorId sender, String type1, String type2){
-		return recvPacket(Packet.NULL, sender, type1, type2);
+	public Packet recvPacket(ActorId sender, String type, String type1){
+		return recvPacket(Packet.NULL, sender, type, type1);
 	}
 	
 	/**
@@ -550,9 +550,9 @@ public class Actor implements Runnable {
 	 * @param type2
 	 * @return
 	 */
-	public Packet recvPacket(Packet pkt, ActorId sender, String type1, String type2){
+	public Packet recvPacket(Packet pkt, ActorId sender, String type, String type1){
 		Pattern pattern = getPattern();
-		pattern.match(sender, type1, type2);
+		pattern.match(sender, type, type1);
 		return recvMessage(pkt, pattern);
 	}
 
@@ -775,7 +775,7 @@ public class Actor implements Runnable {
 	 * @param recvAid
 	 * @param msg
 	 */
-	public static boolean sendMessage(AxSystem axs, ActorId recvAid, Message msg){
+	public static boolean sendMessage(ActorSystem axs, ActorId recvAid, Message msg){
 		Actor a = axs.getActor(recvAid);
 		if (a == null){
 			return false;

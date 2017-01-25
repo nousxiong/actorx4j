@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Xiong
  */
-public class AxSystem {
-	// AxSystem unique id
+public class ActorSystem {
+	// ActorSystem unique id
 	private long axid;
 	/** 启动时间戳 */
 	private long timestamp;
@@ -34,7 +34,7 @@ public class AxSystem {
 	private int currentIdBase = 0;
 	
 	
-	public AxSystem(String axid){
+	public ActorSystem(String axid){
 		this.axid = Atom.to(axid);
 		this.timestamp = System.currentTimeMillis();
 	}
@@ -226,20 +226,20 @@ public class AxSystem {
 	 * @param fromAid
 	 * @param toAid
 	 * @param type
+	 * @param arg
 	 * @param arg1
-	 * @param arg2
 	 */
-	public <A1, A2> void send(ActorId fromAid, ActorId toAid, String type, A1 arg1, A2 arg2){
-		if (arg1 == null){
+	public <A, A1> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1){
+		if (arg == null){
 			throw new NullPointerException();
 		}
-		if (arg2 == null){
+		if (arg1 == null){
 			throw new NullPointerException();
 		}
 		
 		Message msg = Message.make();
+		msg.put(arg);
 		msg.put(arg1);
-		msg.put(arg2);
 		
 		msg.setSender(fromAid);
 		msg.setType(type);
@@ -253,25 +253,25 @@ public class AxSystem {
 	 * @param fromAid
 	 * @param toAid
 	 * @param type
+	 * @param arg
 	 * @param arg1
 	 * @param arg2
-	 * @param arg3
 	 */
-	public <A1, A2, A3> void send(ActorId fromAid, ActorId toAid, String type, A1 arg1, A2 arg2, A3 arg3){
+	public <A, A1, A2> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
+		if (arg == null){
+			throw new NullPointerException();
+		}
 		if (arg1 == null){
 			throw new NullPointerException();
 		}
 		if (arg2 == null){
 			throw new NullPointerException();
 		}
-		if (arg3 == null){
-			throw new NullPointerException();
-		}
 		
 		Message msg = Message.make();
+		msg.put(arg);
 		msg.put(arg1);
 		msg.put(arg2);
-		msg.put(arg3);
 		
 		msg.setSender(fromAid);
 		msg.setType(type);

@@ -12,7 +12,7 @@ import org.junit.Test;
 import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.Message;
 import actorx.MessageGuard;
 import actorx.MessagePool;
@@ -30,7 +30,7 @@ public class MessagePoolBase {
 	@Test
 	public void test() throws IOException{
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
-		AxSystem ctx = new AxSystem("AXS");
+		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup(concurr);
 		
 		Actor baseAx = ctx.spawn();

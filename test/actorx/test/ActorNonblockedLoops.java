@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.IActorHandler;
 import actorx.Message;
 import actorx.MessageGuard;
@@ -42,7 +42,7 @@ public class ActorNonblockedLoops {
 	}
 
 	private long loop() throws IOException{
-		AxSystem axs = new AxSystem("AXS");
+		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup(concurr);
 
 		Actor consumer = axs.spawn();

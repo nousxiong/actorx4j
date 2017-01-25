@@ -18,7 +18,7 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.ExitType;
 import actorx.IActorHandler;
 import actorx.MsgType;
@@ -61,7 +61,7 @@ public class LinkBase {
 
 	@Test
 	public void test() throws IOException {
-		AxSystem axs = new AxSystem("AXS");
+		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 
 		Actor baseAx = axs.spawn();

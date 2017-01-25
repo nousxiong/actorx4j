@@ -10,12 +10,12 @@ package actorx;
  */
 public class ActorRef {
 
-	public ActorRef(AxSystem axs, ActorId refAid){
+	public ActorRef(ActorSystem axs, ActorId refAid){
 		this.axs = axs;
 		this.refAid = refAid;
 	}
 	
-	public AxSystem getAxSystem(){
+	public ActorSystem getAxSystem(){
 		return axs;
 	}
 	
@@ -39,20 +39,20 @@ public class ActorRef {
 		axs.send(fromAid, refAid, type, arg);
 	}
 	
-	public <A1, A2> void send(String type, A1 arg1, A2 arg2){
-		send(ActorId.NULL, type, arg1, arg2);
+	public <A, A1> void send(String type, A arg, A1 arg1){
+		send(ActorId.NULL, type, arg, arg1);
 	}
 	
-	public <A1, A2> void send(ActorId fromAid, String type, A1 arg1, A2 arg2){
-		axs.send(fromAid, refAid, type, arg1, arg2);
+	public <A, A1> void send(ActorId fromAid, String type, A arg, A1 arg1){
+		axs.send(fromAid, refAid, type, arg, arg1);
 	}
 	
-	public <A1, A2, A3> void send(String type, A1 arg1, A2 arg2, A3 arg3){
-		send(ActorId.NULL, type, arg1, arg2, arg3);
+	public <A, A1, A2> void send(String type, A arg, A1 arg1, A2 arg2){
+		send(ActorId.NULL, type, arg, arg1, arg2);
 	}
 	
-	public <A1, A2, A3> void send(ActorId fromAid, String type, A1 arg1, A2 arg2, A3 arg3){
-		axs.send(fromAid, refAid, type, arg1, arg2, arg3);
+	public <A, A1, A2> void send(ActorId fromAid, String type, A arg, A1 arg1, A2 arg2){
+		axs.send(fromAid, refAid, type, arg, arg1, arg2);
 	}
 	
 	public void send(String type, Object... args){
@@ -63,6 +63,6 @@ public class ActorRef {
 		axs.send(fromAid, refAid, type, args);
 	}
 	
-	private AxSystem axs;
+	private ActorSystem axs;
 	private ActorId refAid;
 }

@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.IActorHandler;
 import actorx.Message;
 import actorx.MessageGuard;
@@ -27,7 +27,7 @@ public class PingPong {
 	
 	@Test
 	public void test() throws IOException{
-		AxSystem ctx = new AxSystem("AXS");
+		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup();
 
 		Actor baseAx = ctx.spawn();

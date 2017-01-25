@@ -14,7 +14,7 @@ import org.junit.Test;
 import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.Message;
 import actorx.MessageGuard;
 import actorx.MessagePool;
@@ -34,7 +34,7 @@ public class ActorLoops {
 		System.out.println("Concurrent count: "+concurr);
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		
-		AxSystem axs = new AxSystem("AXS");
+		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup(concurr);
 
 		Actor consumer = axs.spawn();
