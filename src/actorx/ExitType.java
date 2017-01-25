@@ -23,7 +23,7 @@ public enum ExitType {
 				return et;
 			}
 		}
-		throw new RuntimeException("Not match enum ExitType's values");
+		throw new EnumConstantNotPresentException(ExitType.class, "Not match enum ExitType's values");
 	}
 	
 	private ExitType(byte value){
