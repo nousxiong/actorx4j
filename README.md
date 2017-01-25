@@ -33,7 +33,7 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
-import actorx.AxSystem;
+import actorx.ActorSystem;
 import actorx.ExitType;
 import actorx.LinkType;
 import actorx.Message;
@@ -50,7 +50,7 @@ public class ActorBase {
 
 	@Test
 	public void test() throws IOException{
-		AxSystem axs = new AxSystem("AXS");
+		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 
 		Actor baseAx = axs.spawn();
@@ -103,11 +103,12 @@ public class ActorBase {
 		String reply = pkt.getString();
 		assertTrue("Bye!".equals(reply));
 		
-		ActorExit aex = baseAx.recvExit();
-		assertTrue(aex.getExitType() == ExitType.EXCEPT);
-		System.out.println(aex.getErrmsg());
+		ActorExit axExit = baseAx.recvExit();
+		assertTrue(axExit.getExitType() == ExitType.EXCEPT);
+		System.out.println(axExit.getErrmsg());
 	
 		axs.shutdown();
 	}
 }
+
 ```
