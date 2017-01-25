@@ -83,9 +83,9 @@ public class ActorBase {
 		String reply = pkt.getString();
 		assertTrue("Bye!".equals(reply));
 		
-		ActorExit aex = baseAx.recvExit();
-		assertTrue(aex.getExitType() == ExitType.EXCEPT);
-		System.out.println(aex.getErrmsg());
+		ActorExit axExit = baseAx.recvExit();
+		assertTrue(axExit.getExitType() == ExitType.EXCEPT);
+		System.out.println(axExit.getErrmsg());
 	
 		axs.shutdown();
 	}

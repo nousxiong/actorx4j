@@ -391,9 +391,9 @@ public class NetBase {
 		baseAx.send(clnAid, "INIT", connNum, addrNum, startPort);
 		
 		for (int i=0; i<2; ++i){
-			ActorExit aex = baseAx.recvExit();
-			if (aex.getExitType() == ExitType.EXCEPT){
-				System.out.println("Actor "+aex.getSender()+" quit except, errmsg: "+aex.getErrmsg());
+			ActorExit axExit = baseAx.recvExit();
+			if (axExit.getExitType() == ExitType.EXCEPT){
+				System.out.println("Actor "+axExit.getSender()+" quit except, errmsg: "+axExit.getErrmsg());
 			}
 		}
 		
