@@ -695,9 +695,9 @@ public class Actor implements Runnable {
 				return null;
 			}
 			
-			ActorExit aex = msg.get(ActorExit.class);
-			aex.setSender(msg.getSender());
-			return aex;
+			ActorExit axExit = msg.get(ActorExit.class);
+			axExit.setSender(msg.getSender());
+			return axExit;
 		}catch (Exception e){
 			return null;
 		}
@@ -724,7 +724,7 @@ public class Actor implements Runnable {
 	 * @param et
 	 * @param errmsg
 	 */
-	public void quit(ActorExit aex){
+	public void quit(ActorExit axExit){
 		if (!axs.removeActor(selfAid)){
 			return;
 		}
@@ -733,7 +733,7 @@ public class Actor implements Runnable {
 			// 发送退出消息给所有链接的Actor
 			if (!ContainerUtils.isEmpty(linkList)){
 				for (ActorId aid : linkList){
-					send(aid, MsgType.EXIT, aex);
+					send(aid, MsgType.EXIT, axExit);
 				}
 			}
 			
@@ -795,19 +795,19 @@ public class Actor implements Runnable {
 
 	@Override
 	public void run() {
-		ActorExit aex = new ActorExit(ExitType.NORMAL, "no error");
+		ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
 		try{
 			init();
 			handler.run(this);
 		}catch (Exception e){
-			aex.setExitType(ExitType.EXCEPT);
+			axExit.setExitType(ExitType.EXCEPT);
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
-			aex.setErrmsg(sw.toString());
+			axExit.setErrmsg(sw.toString());
 			pw.close();
 		}finally{
-			quit(aex);
+			quit(axExit);
 		}
 	}
 	
