@@ -15,6 +15,17 @@ Example
 --------
 
 ```java
+/**
+ * 
+ */
+package actorx.test;
+
+import static org.junit.Assert.*;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
+
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.Context;
@@ -23,18 +34,24 @@ import actorx.Message;
 import actorx.MessageType;
 import actorx.AbstractHandler;
 
-public class Example {
-	public void test() {
+/**
+ * @author Xiong
+ *
+ */
+public class ActorBase {
+
+	@Test
+	public void test(){
 		Context ctx = Context.getInstance();
 		ctx.startup();
-	
+
 		Actor base = ctx.spawn();
 		ActorId aid = ctx.spawn(base, new AbstractHandler() {
 			@Override
-			public void run(Actor self) {
+			public void run(Actor self){
 				ActorId sender = null;
 				while (true){
-					Message msg = self.match("init").recv(3000);
+					Message msg = self.match("init").recv(3000, TimeUnit.MILLISECONDS);
 					if (msg != null){
 						sender = msg.getSender();
 						String str = msg.get(0);
@@ -55,16 +72,17 @@ public class Example {
 		}
 		base.send(aid, "init", "end");
 		Message msg = base.match("ok").recv();
-		assert(msg.getSender().equals(aid));
+		assertTrue(msg.getSender().equals(aid));
 		String reply = msg.get(0);
-		assert(reply.equals("Hi!"));
+		assertTrue(reply.equals("Hi!"));
 		
 		msg = base.match(MessageType.EXIT).recv();
-		assert(msg.getSender().equals(aid));
+		assertTrue(msg.getSender().equals(aid));
 		
 		ctx.join();
 		
 		System.out.println("done.");
 	}
 }
+
 ```
