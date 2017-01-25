@@ -25,13 +25,13 @@ public class Addon extends ActorRef {
 	}
 	
 	@Override
-	public <A1, A2> void send(String type, A1 arg1, A2 arg2){
-		super.send(type, arg1, arg2);
+	public <A, A1> void send(String type, A arg, A1 arg1){
+		super.send(type, arg, arg1);
 	}
 	
 	@Override
-	public <A1, A2, A3> void send(String type, A1 arg1, A2 arg2, A3 arg3){
-		super.send(type, arg1, arg2, arg3);
+	public <A, A1, A2> void send(String type, A arg, A1 arg1, A2 arg2){
+		super.send(type, arg, arg1, arg2);
 	}
 	
 	@Override

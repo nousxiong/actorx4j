@@ -3,7 +3,7 @@
  */
 package actorx;
 
-import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.CowBuffer;
 import actorx.detail.Pack;
 import adata.Base;
 
@@ -12,7 +12,7 @@ import adata.Base;
  * 简化的消息对象，临时和简单使用，只读用
  */
 public class Packet extends Pack {
-	private CopyOnWriteBuffer cowBuffer;
+	private CowBuffer cowBuffer;
 	
 	public static final Packet NULL = null;
 
@@ -73,7 +73,7 @@ public class Packet extends Pack {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	void set(Pack other, CopyOnWriteBuffer cowBuffer){
+	void set(Pack other, CowBuffer cowBuffer){
 		this.sender = other.getSender();
 		this.type = other.getType();
 		if (this.cowBuffer != null){

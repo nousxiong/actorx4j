@@ -18,7 +18,7 @@ public class CowBufferFactory implements INodeFactory {
 	
 	@Override
 	public INode createInstance() {
-		return new CopyOnWriteBuffer(capacity);
+		return new CowBuffer(capacity);
 	}
 
 }

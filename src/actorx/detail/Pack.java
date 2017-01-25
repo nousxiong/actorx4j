@@ -58,7 +58,7 @@ public abstract class Pack {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected <T extends Base> T get(CopyOnWriteBuffer cowBuffer, T t){
+	protected <T extends Base> T get(CowBuffer cowBuffer, T t){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
@@ -73,7 +73,7 @@ public abstract class Pack {
 		return t;
 	}
 		
-	protected <T extends Base> T get(CopyOnWriteBuffer cowBuffer, Class<T> c){
+	protected <T extends Base> T get(CowBuffer cowBuffer, Class<T> c){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
@@ -95,7 +95,7 @@ public abstract class Pack {
 		return t;
 	}
 	
-	protected byte getByte(CopyOnWriteBuffer cowBuffer){
+	protected byte getByte(CowBuffer cowBuffer){
 		Byte arg = getArg();
 		if (arg != null){
 			return arg;
@@ -110,7 +110,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected boolean getBool(CopyOnWriteBuffer cowBuffer){
+	protected boolean getBool(CowBuffer cowBuffer){
 		Boolean arg = getArg();
 		if (arg != null){
 			return arg;
@@ -125,7 +125,7 @@ public abstract class Pack {
 		return o != 0;
 	}
 	
-	protected short getShort(CopyOnWriteBuffer cowBuffer){
+	protected short getShort(CowBuffer cowBuffer){
 		Short arg = getArg();
 		if (arg != null){
 			return arg;
@@ -140,7 +140,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected int getInt(CopyOnWriteBuffer cowBuffer){
+	protected int getInt(CowBuffer cowBuffer){
 		Integer arg = getArg();
 		if (arg != null){
 			return arg;
@@ -155,7 +155,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected long getLong(CopyOnWriteBuffer cowBuffer){
+	protected long getLong(CowBuffer cowBuffer){
 		Long arg = getArg();
 		if (arg != null){
 			return arg;
@@ -170,7 +170,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected float getFloat(CopyOnWriteBuffer cowBuffer){
+	protected float getFloat(CowBuffer cowBuffer){
 		Float arg = getArg();
 		if (arg != null){
 			return arg;
@@ -185,7 +185,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected double getDouble(CopyOnWriteBuffer cowBuffer){
+	protected double getDouble(CowBuffer cowBuffer){
 		Double arg = getArg();
 		if (arg != null){
 			return arg;
@@ -200,7 +200,7 @@ public abstract class Pack {
 		return o;
 	}
 	
-	protected String getString(CopyOnWriteBuffer cowBuffer){
+	protected String getString(CowBuffer cowBuffer){
 		String arg = getArg();
 		if (arg != null){
 			return arg;

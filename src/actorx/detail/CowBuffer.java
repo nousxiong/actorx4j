@@ -13,12 +13,12 @@ import cque.INode;
  * @author Xiong
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
-public class CopyOnWriteBuffer implements INode {
+public class CowBuffer implements INode {
 	private byte[] buffer;
 	private int size;
 	private AtomicInteger refCount = new AtomicInteger(0);
 	
-	public CopyOnWriteBuffer(int capacity){
+	public CowBuffer(int capacity){
 		this.buffer = new byte[capacity];
 		this.size = 0;
 	}
@@ -28,8 +28,8 @@ public class CopyOnWriteBuffer implements INode {
 	 * @param src
 	 * @return
 	 */
-	public CopyOnWriteBuffer copyOnWrite(){
-		CopyOnWriteBuffer cowBuffer = CowBufferPool.get(buffer.length);
+	public CowBuffer copyOnWrite(){
+		CowBuffer cowBuffer = CowBufferPool.get(buffer.length);
 		copy(buffer, cowBuffer, size);
 		decrRef();
 		return cowBuffer;
@@ -48,7 +48,7 @@ public class CopyOnWriteBuffer implements INode {
 	 * @param length
 	 * @return 如果未扩展返回自身，如果扩展了，返回新写时拷贝buffer
 	 */
-	public CopyOnWriteBuffer reserve(int length){
+	public CowBuffer reserve(int length){
 		if (length == 0){
 			return this;
 		}
@@ -57,7 +57,7 @@ public class CopyOnWriteBuffer implements INode {
 			return this;
 		}
 		
-		CopyOnWriteBuffer newBuffer = CowBufferPool.get(size + length);
+		CowBuffer newBuffer = CowBufferPool.get(size + length);
 		copy(buffer, newBuffer, size);
 		return newBuffer;
 	}
@@ -108,7 +108,7 @@ public class CopyOnWriteBuffer implements INode {
 		return ref;
 	}
 	
-	private static void copy(byte[] src, CopyOnWriteBuffer dest, int len){
+	private static void copy(byte[] src, CowBuffer dest, int len){
 		if (len > 0){
 			System.arraycopy(src, 0, dest.buffer, 0, len);
 		}

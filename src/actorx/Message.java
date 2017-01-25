@@ -3,7 +3,7 @@
  */
 package actorx;
 
-import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.CowBuffer;
 import actorx.detail.IMail;
 import actorx.detail.Pack;
 import adata.Base;
@@ -19,7 +19,7 @@ public class Message extends Pack implements INode, IMail {
 	// 空消息
 	public static final Message NULLMSG = new Message();
 	
-	private CopyOnWriteBuffer cowBuffer;
+	private CowBuffer cowBuffer;
 	// 当前未序列化过的参数的索引
 	private int writeIndex;
 	
@@ -198,7 +198,7 @@ public class Message extends Pack implements INode, IMail {
 	 * @return
 	 */
 	Packet move(Packet pkt){
-		CopyOnWriteBuffer buffer = null;
+		CowBuffer buffer = null;
 		if (cowBuffer != null){
 			buffer = cowBuffer;
 			cowBuffer = null;
@@ -212,7 +212,7 @@ public class Message extends Pack implements INode, IMail {
 	}
 	
 	// 序列化所有的参数到buffer中，并返回；调用此方法后，消息本身需要释放，已经不合法
-	CopyOnWriteBuffer move(){
+	CowBuffer move(){
 		if (argsIsEmpty()){
 			return null;
 		}
@@ -221,7 +221,7 @@ public class Message extends Pack implements INode, IMail {
 		if (cowBuffer == null){
 			cowBuffer = CowBufferPool.get(length);
 		}else{
-			CopyOnWriteBuffer newBuffer = cowBuffer.reserve(length);
+			CowBuffer newBuffer = cowBuffer.reserve(length);
 			if (newBuffer != cowBuffer){
 				cowBuffer.decrRef();
 				cowBuffer = newBuffer;
@@ -232,7 +232,7 @@ public class Message extends Pack implements INode, IMail {
 		// 将能序列化的对象序列化
 		writeArgs();
 		
-		CopyOnWriteBuffer buffer = null;
+		CowBuffer buffer = null;
 		if (cowBuffer != null){
 			buffer = cowBuffer;
 			cowBuffer = null;
@@ -253,7 +253,7 @@ public class Message extends Pack implements INode, IMail {
 	
 	private boolean reserve(){
 		int length = argsLength();
-		CopyOnWriteBuffer newBuffer = cowBuffer.reserve(length);
+		CowBuffer newBuffer = cowBuffer.reserve(length);
 		if (newBuffer != cowBuffer){
 			cowBuffer.decrRef();
 			cowBuffer = newBuffer;

@@ -6,7 +6,7 @@ package actorx;
 import java.util.ArrayList;
 import java.util.List;
 
-import actorx.detail.CopyOnWriteBuffer;
+import actorx.detail.CowBuffer;
 import actorx.detail.CowBufferFactory;
 import cque.ConcurrentNodePool;
 import cque.MpscNodePool;
@@ -24,8 +24,8 @@ public class CowBufferPool {
 	private static final int DEFAULT_MAX_DECR_FACTOR = 10;
 	
 	/** 写时拷贝Buffer节点池 */
-	private static final List<ConcurrentNodePool<CopyOnWriteBuffer>> cpoolArray = 
-		new ArrayList<ConcurrentNodePool<CopyOnWriteBuffer>>(BUFFER_POOL_COUNT);
+	private static final List<ConcurrentNodePool<CowBuffer>> cpoolArray = 
+		new ArrayList<ConcurrentNodePool<CowBuffer>>(BUFFER_POOL_COUNT);
 	
 	static {
 		// 建立buffer的capacity 数组，j从7开始的原因是最小分配长度是128（1 << 7）
@@ -35,7 +35,7 @@ public class CowBufferPool {
 		capacityArray[capacityArray.length - 1] = Integer.MAX_VALUE;
 		
 		for (int capacity : capacityArray){
-			cpoolArray.add(new ConcurrentNodePool<CopyOnWriteBuffer>(new CowBufferFactory(capacity)));
+			cpoolArray.add(new ConcurrentNodePool<CowBuffer>(new CowBufferFactory(capacity)));
 		}
 	}
 	
@@ -60,7 +60,7 @@ public class CowBufferPool {
 	public static void init(int initCount, int initDecrFactor, int maxCount, int maxDecrFactor){
 		int maxCachedIndex = getPoolIndex(maxCachedBufferSize);
 		for (int i=0; i<capacityArray.length; ++i){
-			ConcurrentNodePool<CopyOnWriteBuffer> cpool = cpoolArray.get(i);
+			ConcurrentNodePool<CowBuffer> cpool = cpoolArray.get(i);
 			if (i <= maxCachedIndex){
 				cpool.setInitSize(initCount);
 			}
@@ -74,8 +74,8 @@ public class CowBufferPool {
 	 * 从池中分配一个最小容量写时拷贝Buffer
 	 * @return 不会为null
 	 */
-	public static CopyOnWriteBuffer get(){
-		MpscNodePool<CopyOnWriteBuffer> pool = getLocalPool();
+	public static CowBuffer get(){
+		MpscNodePool<CowBuffer> pool = getLocalPool();
 		return get(pool);
 	}
 	
@@ -83,8 +83,8 @@ public class CowBufferPool {
 	 * 从池中分配一个指定大小的写时拷贝Buffer
 	 * @return 不会为null
 	 */
-	public static CopyOnWriteBuffer get(int requestedCapacity){
-		MpscNodePool<CopyOnWriteBuffer> pool = getLocalPool(requestedCapacity);
+	public static CowBuffer get(int requestedCapacity){
+		MpscNodePool<CowBuffer> pool = getLocalPool(requestedCapacity);
 		return get(requestedCapacity, pool);
 	}
 	
@@ -93,7 +93,7 @@ public class CowBufferPool {
 	 * @param pool
 	 * @return 不会为null
 	 */
-	public static CopyOnWriteBuffer get(MpscNodePool<CopyOnWriteBuffer> pool){
+	public static CowBuffer get(MpscNodePool<CowBuffer> pool){
 		assert pool == getLocalPool();
 		return cpoolArray.get(0).get(pool);
 	}
@@ -104,15 +104,15 @@ public class CowBufferPool {
 	 * @param pool
 	 * @return
 	 */
-	public static CopyOnWriteBuffer get(int requestedCapacity, MpscNodePool<CopyOnWriteBuffer> pool){
+	public static CowBuffer get(int requestedCapacity, MpscNodePool<CowBuffer> pool){
 		if (requestedCapacity > maxCachedBufferSize){
-			return new CopyOnWriteBuffer(requestedCapacity);
+			return new CowBuffer(requestedCapacity);
 		}
 		
 		assert pool == getLocalPool(requestedCapacity);
 		int index = getPoolIndex(requestedCapacity);
 		if (index < 0){
-			return new CopyOnWriteBuffer(requestedCapacity);
+			return new CowBuffer(requestedCapacity);
 		}
 		return cpoolArray.get(index).get(pool);
 	}
@@ -121,11 +121,11 @@ public class CowBufferPool {
 	 * 取得本地线程的池
 	 * @return
 	 */
-	public static MpscNodePool<CopyOnWriteBuffer> getLocalPool(){
+	public static MpscNodePool<CowBuffer> getLocalPool(){
 		return cpoolArray.get(0).getLocalPool();
 	}
 	
-	public static MpscNodePool<CopyOnWriteBuffer> getLocalPool(int requestedCapacity){
+	public static MpscNodePool<CowBuffer> getLocalPool(int requestedCapacity){
 		if (requestedCapacity > maxCachedBufferSize){
 			return null;
 		}
