@@ -94,7 +94,7 @@ public abstract class AbstractAioSession {
 				decode();
 			}
 			asyncRead();
-		}catch (Exception e){
+		}catch (Throwable e){
 			onReadFailed(e);
 		}
 	}

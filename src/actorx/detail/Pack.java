@@ -83,7 +83,7 @@ public abstract class Pack {
 		T t = null;
 		try{
 			t = c.newInstance();
-		}catch (Exception e){
+		}catch (Throwable e){
 			throw new RuntimeException(e.getMessage());
 		}
 		

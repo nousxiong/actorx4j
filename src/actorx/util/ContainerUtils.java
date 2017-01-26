@@ -12,7 +12,7 @@ import java.util.Map;
  * @author Xiong
  *
  */
-public class ContainerUtils {
+public final class ContainerUtils {
 	
 	/**
 	 * 查看指定的容器是否为空（包括null）

@@ -3,8 +3,6 @@
  */
 package actorx;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +14,7 @@ import actorx.detail.IMail;
 import actorx.detail.Mailbox;
 import actorx.detail.MessageGuardFactory;
 import actorx.util.ContainerUtils;
+import actorx.util.ExceptionUtils;
 import cque.IntrusiveMpscQueue;
 import cque.MpscNodePool;
 import cque.SimpleNodePool;
@@ -698,7 +697,7 @@ public class Actor implements Runnable {
 			ActorExit axExit = msg.get(ActorExit.class);
 			axExit.setSender(msg.getSender());
 			return axExit;
-		}catch (Exception e){
+		}catch (Throwable e){
 			return null;
 		}
 	}
@@ -799,13 +798,10 @@ public class Actor implements Runnable {
 		try{
 			init();
 			handler.run(this);
-		}catch (Exception e){
+		}catch (Throwable e){
 			axExit.setExitType(ExitType.EXCEPT);
-			StringWriter sw = new StringWriter();
-			PrintWriter pw = new PrintWriter(sw);
-			e.printStackTrace(pw);
-			axExit.setErrmsg(sw.toString());
-			pw.close();
+			String errmsg = ExceptionUtils.printStackTrace(e);
+			axExit.setErrmsg(errmsg);
 		}finally{
 			quit(axExit);
 		}
@@ -953,7 +949,7 @@ public class Actor implements Runnable {
 			}
 			
 			return msg.move(pkt);
-		}catch (Exception e){
+		}catch (Throwable e){
 			return null;
 		}
 	}
