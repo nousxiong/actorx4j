@@ -68,11 +68,11 @@ public class LinkBase {
 		Actor ax1 = axs.spawn();
 		ax1.quit();
 		baseAx.link(ax1.getActorId());
-		ActorExit axe = baseAx.recvExit();
-		assertTrue(axe.getExitType() == ExitType.ALREADY);
+		ActorExit axExit = baseAx.recvExit();
+		assertTrue(axExit.getExitType() == ExitType.ALREADY);
 		baseAx.monitor(ax1.getActorId());
-		axe = baseAx.recvExit();
-		assertTrue(axe.getExitType() == ExitType.ALREADY);
+		axExit = baseAx.recvExit();
+		assertTrue(axExit.getExitType() == ExitType.ALREADY);
 		
 		Actor ax2 = axs.spawn();
 		baseAx.link(ax2.getActorId());
@@ -99,8 +99,8 @@ public class LinkBase {
 			pkt = baseAx.recvPacket(pkt, MsgType.MONITOR, MsgType.EXIT);
 			String type = pkt.getType();
 			if (MsgType.equals(type, MsgType.EXIT)){
-				axe = pkt.getRaw();
-				if (axe.getExitType() == ExitType.NORMAL){
+				axExit = pkt.getRaw();
+				if (axExit.getExitType() == ExitType.NORMAL){
 					--i;
 				}
 			}
