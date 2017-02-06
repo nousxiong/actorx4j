@@ -3,7 +3,6 @@
  */
 package actorx.test;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
@@ -375,7 +374,7 @@ public class NetBase {
 	}
 
 	@Test
-	public void test() throws IOException {
+	public void test(){
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 		

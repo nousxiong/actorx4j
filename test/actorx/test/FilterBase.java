@@ -5,7 +5,6 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -100,7 +99,7 @@ public class FilterBase {
 	}
 
 	@Test
-	public void test() throws IOException {
+	public void test(){
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 

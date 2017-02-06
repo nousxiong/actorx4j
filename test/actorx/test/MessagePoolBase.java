@@ -5,8 +5,6 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
 import actorx.IActorHandler;
@@ -28,7 +26,7 @@ public class MessagePoolBase {
 	static final int count = 100000;
 	
 	@Test
-	public void test() throws IOException{
+	public void test(){
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup(concurr);

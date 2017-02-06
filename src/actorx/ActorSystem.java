@@ -39,25 +39,33 @@ public class ActorSystem {
 		this.timestamp = System.currentTimeMillis();
 	}
 	
-	public void startup() throws IOException{
+	public void startup(){
 		startup(Executors.newCachedThreadPool());
 		outerThreadPool = false;
 	}
 	
-	public void startup(int threadNum) throws IOException{
+	public void startup(int threadNum){
 		outerThreadPool = false;
 		this.actorIdBases = makeActorIdBases(threadNum);
 		this.actorThreadPool = Executors.newFixedThreadPool(threadNum);
 		this.chanThreadPool = Executors.newFixedThreadPool(threadNum);
-		this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
+		try{
+			this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
+		}catch (IOException e){
+			throw new RuntimeException(e);
+		}
 	}
 	
-	public void startup(ExecutorService threadPool) throws IOException{
+	public void startup(ExecutorService threadPool){
 		outerThreadPool = true;
 		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
 		this.actorThreadPool = threadPool;
 		this.chanThreadPool = threadPool;
-		this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
+		try{
+			this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
+		}catch (IOException e){
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public void shutdown(){

@@ -3,7 +3,6 @@
  */
 package actorx.test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +29,7 @@ public class ActorNonblockedLoops {
 	private static final int testCount = 1;
 	
 	@Test
-	public void test() throws IOException{
+	public void test(){
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		System.out.println("Concurrent count: "+concurr);
 		long eclipse = loop();
@@ -41,7 +40,7 @@ public class ActorNonblockedLoops {
 		System.out.printf("Eclipse time: %d ms\n", eclipse);
 	}
 
-	private long loop() throws IOException{
+	private long loop(){
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup(concurr);
 

@@ -5,7 +5,6 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +29,7 @@ public class ActorLoops {
 	private static final int count = 100000;
 	
 	@Test
-	public void test() throws IOException {
+	public void test(){
 		System.out.println("Concurrent count: "+concurr);
 		MessagePool.init(count, Integer.MAX_VALUE, concurr + 1);
 		

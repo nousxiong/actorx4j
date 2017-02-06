@@ -5,7 +5,6 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -60,7 +59,7 @@ public class LinkBase {
 	}
 
 	@Test
-	public void test() throws IOException {
+	public void test(){
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 

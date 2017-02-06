@@ -5,8 +5,6 @@ package actorx.test;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
 import actorx.Actor;
@@ -26,7 +24,7 @@ public class PingPong {
 	private static final int count = 10000;
 	
 	@Test
-	public void test() throws IOException{
+	public void test(){
 		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup();
 
