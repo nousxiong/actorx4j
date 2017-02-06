@@ -65,7 +65,7 @@ public class Actor implements Runnable {
 	 * 返回AxSystem
 	 * @return
 	 */
-	public ActorSystem getAxSystem(){
+	public ActorSystem getActorSystem(){
 		return axs;
 	}
 	

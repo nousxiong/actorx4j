@@ -11,7 +11,7 @@ package actorx;
 public class Addon extends ActorRef {
 
 	public Addon(Actor hostAx) {
-		super(hostAx.getAxSystem(), hostAx.getActorId());
+		super(hostAx.getActorSystem(), hostAx.getActorId());
 	}
 
 	@Override
