@@ -183,6 +183,15 @@ public class ActorSystem {
 	}
 	
 	/**
+	 * 产生一个ActorRef
+	 * @param refAid
+	 * @return
+	 */
+	public ActorRef ref(ActorId refAid){
+		return new ActorRef(this, refAid);
+	}
+	
+	/**
 	 * 发送一个自己构建的消息
 	 * @param toAid
 	 * @param msg

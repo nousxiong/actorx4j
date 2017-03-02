@@ -70,6 +70,14 @@ public class Actor implements Runnable {
 	}
 	
 	/**
+	 * 返回一个自身的引用
+	 * @return
+	 */
+	public ActorRef ref(){
+		return axs.ref(selfAid);
+	}
+	
+	/**
 	 * 创建消息
 	 * @return
 	 */
