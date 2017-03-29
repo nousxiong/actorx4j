@@ -14,7 +14,7 @@ import cque.SimpleNodePool;
 import actorx.ActorId;
 import actorx.IRecvFilter;
 import actorx.Message;
-import actorx.MsgType;
+import actorx.AtomCode;
 import actorx.util.ContainerUtils;
 
 /**
@@ -73,7 +73,7 @@ public class Mailbox {
 		if (!typesEmpty){
 			String msgType = msg.getType();
 			for (String type : matchedTypes){
-				if (MsgType.equals(type, msgType)){
+				if (AtomCode.equals(type, msgType)){
 					found = true;
 					break;
 				}
@@ -98,7 +98,7 @@ public class Mailbox {
 					hasTypes = true;
 					if (matchedActor){
 						String type = (String) obj;
-						if (MsgType.compare(type, msgType) == 0){
+						if (AtomCode.compare(type, msgType) == 0){
 							found = true;
 							break;
 						}
@@ -501,7 +501,7 @@ public class Mailbox {
 		IMail itr = root;
 		do{
 			for (String type : matchedTypes){
-				if (MsgType.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					
@@ -526,7 +526,7 @@ public class Mailbox {
 		IMail itr = root;
 		do{
 			for (String type : matchedTypes){
-				if (MsgType.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					filteredTotalList = removeTotalMail(filteredTotalList, itr);
 					filteredTypeList = removeTypeMail(filteredTypeList, itr, itr);
 					
@@ -578,7 +578,7 @@ public class Mailbox {
 		
 		IMail itr = root;
 		do{
-			if (MsgType.equals(itr.getType(), type)){
+			if (AtomCode.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getTypeNext();

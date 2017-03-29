@@ -8,10 +8,6 @@ import static org.junit.Assert.*;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import actorx.Actor;
@@ -19,8 +15,8 @@ import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
 import actorx.ExitType;
-import actorx.IActorHandler;
-import actorx.MsgType;
+import actorx.AtomCode;
+import actorx.IThreadActorHandler;
 import actorx.Packet;
 
 /**
@@ -29,34 +25,6 @@ import actorx.Packet;
  * 测试actor之间相互链接
  */
 public class LinkBase {
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-	}
 
 	@Test
 	public void test(){
@@ -75,14 +43,14 @@ public class LinkBase {
 		
 		Actor ax2 = axs.spawn();
 		baseAx.link(ax2.getActorId());
-		Packet pkt = baseAx.recvPacket(MsgType.LINK);
+		Packet pkt = baseAx.recvPacket(AtomCode.LINK);
 		assertTrue(pkt != null);
-		assertTrue(MsgType.equals(pkt.getType(), MsgType.LINK));
+		assertTrue(AtomCode.equals(pkt.getType(), AtomCode.LINK));
 		
 		Set<ActorId> quiters = new HashSet<ActorId>();
 		for (int i=0; i<100; ++i){
 			final int index = i;
-			ActorId aid = axs.spawn(new IActorHandler() {
+			ActorId aid = axs.spawn(new IThreadActorHandler() {
 				@Override
 				public void run(Actor self) throws Exception {
 					if (index % 7 == 0){
@@ -95,9 +63,9 @@ public class LinkBase {
 		}
 		
 		for (int i=0, size=quiters.size(); i<size; ++i){
-			pkt = baseAx.recvPacket(pkt, MsgType.MONITOR, MsgType.EXIT);
+			pkt = baseAx.recvPacket(pkt, AtomCode.MONITOR, AtomCode.EXIT);
 			String type = pkt.getType();
-			if (MsgType.equals(type, MsgType.EXIT)){
+			if (AtomCode.equals(type, AtomCode.EXIT)){
 				axExit = pkt.getRaw();
 				if (axExit.getExitType() == ExitType.NORMAL){
 					--i;

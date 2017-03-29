@@ -8,8 +8,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import actorx.Addon;
-import actorx.MsgType;
+import actorx.ActorAddon;
+import actorx.AtomCode;
 import actorx.net.AioService.ReadHandler;
 import actorx.net.AioService.WriteHandler;
 
@@ -26,7 +26,7 @@ public abstract class AbstractAioSession {
 	private ByteBuffer writeBuffer;
 	private int lastPosition = 0;
 	private Queue<ByteBuffer> sendQueue = new ConcurrentLinkedQueue<ByteBuffer>();
-	private Addon addon;
+	private ActorAddon addon;
 	private boolean msgReadEnd = false;
 	private boolean writing = false;
 	private boolean reading = false;
@@ -54,7 +54,7 @@ public abstract class AbstractAioSession {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	void onOpen(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+	void onOpen(ActorAddon addon, ReadHandler readHandler, WriteHandler writeHandler){
 		this.addon = addon;
 		this.readHandler = readHandler;
 		this.writeHandler = writeHandler;
@@ -102,7 +102,7 @@ public abstract class AbstractAioSession {
 	void onReadFailed(Throwable exc){
 		closesocket();
 		addon.send(AioService.READ_ERR, this);
-		addon.send(MsgType.EXCEPT, exc, this);
+		addon.send(AtomCode.EXCEPT, exc, this);
 	}
 	
 	void onWrite(int result){
@@ -118,7 +118,7 @@ public abstract class AbstractAioSession {
 	void onWriteFailed(Throwable exc){
 		closesocket();
 		addon.send(AioService.WRITE_ERR, this);
-		addon.send(MsgType.EXCEPT, exc, this);
+		addon.send(AtomCode.EXCEPT, exc, this);
 	}
 	
 	void onFilterRecv(String type){
@@ -142,7 +142,7 @@ public abstract class AbstractAioSession {
 	private void tryClose(){
 		if (!reading && !writing && !closed){
 			closed = true;
-			addon.send(MsgType.CLOSE, this);
+			addon.send(AtomCode.CLOSE, this);
 		}
 	}
 	
@@ -223,22 +223,22 @@ public abstract class AbstractAioSession {
 	}
 	
 	protected void sendReadResult(){
-		addon.send(MsgType.RECV, this);
+		addon.send(AtomCode.RECV, this);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg){
-		addon.send(MsgType.RECV, this, arg);
+		addon.send(AtomCode.RECV, this, arg);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg1, Object arg2){
-		addon.send(MsgType.RECV, this, arg1, arg2);
+		addon.send(AtomCode.RECV, this, arg1, arg2);
 		msgReadEnd = true;
 	}
 	
 	protected void sendReadResult(Object arg1, Object arg2, Object arg3){
-		addon.send(MsgType.RECV, this, arg1, arg2, arg3);
+		addon.send(AtomCode.RECV, this, arg1, arg2, arg3);
 		msgReadEnd = true;
 	}
 	

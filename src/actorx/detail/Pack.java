@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import actorx.ActorId;
-import actorx.MsgType;
+import actorx.AtomCode;
 import actorx.util.ContainerUtils;
 import adata.Base;
 import adata.Stream;
@@ -18,7 +18,7 @@ import adata.Stream;
  */
 public abstract class Pack {
 	protected ActorId sender = ActorId.NULLAID;
-	protected String type = MsgType.NULLTYPE;
+	protected String type = AtomCode.NULLTYPE;
 	// 当前未读过的序列化的字节位置
 	protected int readPos;
 	// 当前未读过的参数的索引
@@ -35,7 +35,7 @@ public abstract class Pack {
 	
 	public void clear(){
 		sender = ActorId.NULLAID;
-		type = MsgType.NULLTYPE;
+		type = AtomCode.NULLTYPE;
 		readPos = 0;
 		readIndex = 0;
 		argsClear();

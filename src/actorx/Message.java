@@ -119,7 +119,7 @@ public class Message extends Pack implements INode, IMail {
 	
 	public void setType(String type){
 		if (type == null){
-			type = MsgType.NULLTYPE;
+			type = AtomCode.NULLTYPE;
 		}
 		this.type = type;
 	}

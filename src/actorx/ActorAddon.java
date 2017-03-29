@@ -8,9 +8,9 @@ package actorx;
  * @creation 2016年10月9日下午3:04:06
  *
  */
-public class Addon extends ActorRef {
+public class ActorAddon extends ActorRef {
 
-	public Addon(Actor hostAx) {
+	public ActorAddon(Actor hostAx) {
 		super(hostAx.getActorSystem(), hostAx.getActorId());
 	}
 

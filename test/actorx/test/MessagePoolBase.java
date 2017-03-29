@@ -7,12 +7,12 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.ActorSystem;
+import actorx.IThreadActorHandler;
 import actorx.Message;
-import actorx.MessageGuard;
+import actorx.Guard;
 import actorx.MessagePool;
 import actorx.Packet;
 
@@ -34,14 +34,14 @@ public class MessagePoolBase {
 		Actor baseAx = ctx.spawn();
 		ActorId[] producers = new ActorId[concurr];
 		for (int i=0; i<concurr; ++i){
-			producers[i] = ctx.spawn(baseAx, new IActorHandler() {
-				public void run(Actor self){
+			producers[i] = ctx.spawn(baseAx, new IThreadActorHandler() {
+				public void run(Actor self) throws Exception{
 					Packet pkt = self.recvPacket("INIT");
 					ActorId sender = pkt.getSender();
 					self.send(sender, "READY");
 					self.recvPacket(pkt, "START");
 					
-					try (MessageGuard guard = self.makeMessage()){
+					try (Guard guard = self.makeMessage()){
 						Message msg = guard.get();
 						msg.setType("TEST");
 						for (int i=0; i<count; ++i){
@@ -65,7 +65,7 @@ public class MessagePoolBase {
 		}
 		
 		for (int i=0; i<concurr*count; ++i){
-			try (MessageGuard guard = baseAx.recv()){
+			try (Guard guard = baseAx.recv()){
 				Message msg = guard.get();
 				assertTrue(msg != null);
 				assertTrue("TEST".equals(msg.getType()));

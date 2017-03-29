@@ -10,9 +10,9 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.ActorSystem;
-import actorx.IActorHandler;
+import actorx.IThreadActorHandler;
 import actorx.Message;
-import actorx.MessageGuard;
+import actorx.Guard;
 import actorx.Packet;
 
 /**
@@ -29,12 +29,12 @@ public class PingPong {
 		ctx.startup();
 
 		Actor baseAx = ctx.spawn();
-		ActorId aid = ctx.spawn(baseAx, new IActorHandler() {
+		ActorId aid = ctx.spawn(baseAx, new IThreadActorHandler() {
 			@Override
 			public void run(Actor self){
 				boolean goon = true;
 				while (goon){
-					try (MessageGuard guard = self.recv("PINGPONG", "END")){
+					try (Guard guard = self.recv("PINGPONG", "END")){
 						Message msg = guard.get();
 						ActorId sender = msg.getSender();
 						String type = msg.getType();

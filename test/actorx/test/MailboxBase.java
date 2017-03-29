@@ -23,7 +23,7 @@ import actorx.ActorId;
 import actorx.Atom;
 import actorx.IRecvFilter;
 import actorx.Message;
-import actorx.MsgType;
+import actorx.AtomCode;
 import actorx.detail.IMail;
 import actorx.detail.Mailbox;
 
@@ -126,7 +126,7 @@ public class MailboxBase {
 		
 		IMail mail = mailbox.fetch(matchedTypes, null, null);
 		assertTrue(mail != null);
-		assertTrue(MsgType.equals(mail.getType(), msgs[1].getType()));
+		assertTrue(AtomCode.equals(mail.getType(), msgs[1].getType()));
 		
 		assertTrue(clearMailbox() == msgNum - 1);
 	}
@@ -139,7 +139,7 @@ public class MailboxBase {
 		}
 		
 		List<String> matchedTypes = new ArrayList<String>(1);
-		matchedTypes.add(MsgType.NULLTYPE);
+		matchedTypes.add(AtomCode.NULLTYPE);
 		
 		IMail mail = mailbox.fetch(matchedTypes, null, null);
 		assertTrue(mail == null);
@@ -162,8 +162,8 @@ public class MailboxBase {
 			IMail mail = mailbox.fetch(matchedTypes, null, null);
 			assertTrue(mail != null);
 			assertTrue(
-				MsgType.equals(mail.getType(), msgs[1].getType()) ||
-				MsgType.equals(mail.getType(), msgs[7].getType())
+				AtomCode.equals(mail.getType(), msgs[1].getType()) ||
+				AtomCode.equals(mail.getType(), msgs[7].getType())
 			);
 		}
 		
@@ -240,7 +240,7 @@ public class MailboxBase {
 		IMail mail = mailbox.fetch(null, matchedActors, null);
 		assertTrue(mail != null);
 		assertTrue(ActorId.equals(mail.getSender(), msgs[1].getSender()));
-		assertTrue(MsgType.equals(mail.getType(), msgs[1].getType()));
+		assertTrue(AtomCode.equals(mail.getType(), msgs[1].getType()));
 		
 		assertTrue(clearMailbox() == msgNum - 1);
 	}
@@ -348,7 +348,7 @@ public class MailboxBase {
 		@Override
 		public Message filterRecv(ActorId fromAid, String type, Message prevFilteredMsg, Message srcMsg) {
 			++count;
-			assertTrue(MsgType.equals(this.type, type));
+			assertTrue(AtomCode.equals(this.type, type));
 			return prevFilteredMsg;
 		}
 		

@@ -12,9 +12,9 @@ import org.junit.Test;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.ActorSystem;
-import actorx.IActorHandler;
+import actorx.IThreadActorHandler;
 import actorx.Message;
-import actorx.MessageGuard;
+import actorx.Guard;
 import actorx.MessagePool;
 import actorx.Packet;
 
@@ -48,9 +48,9 @@ public class ActorNonblockedLoops {
 		
 		List<ActorId> producers = new ArrayList<ActorId>(concurr);
 		for (int i=0; i<concurr; ++i){
-			ActorId aid = axs.spawn(consumer, new IActorHandler() {
+			ActorId aid = axs.spawn(consumer, new IThreadActorHandler() {
 				@Override
-				public void run(Actor self){
+				public void run(Actor self) throws Exception{
 					Packet pkt = self.recvPacket("INIT");
 					ActorId consAid = pkt.getSender();
 					self.send(consAid, "READY");
@@ -76,7 +76,7 @@ public class ActorNonblockedLoops {
 		
 		int loop = count * concurr;
 		while (true){
-			try (MessageGuard guard = consumer.recv(0, TimeUnit.MILLISECONDS)){
+			try (Guard guard = consumer.recv(0, TimeUnit.MILLISECONDS)){
 				Message msg = guard.get();
 				if (msg != null){
 					if (--loop == 0){

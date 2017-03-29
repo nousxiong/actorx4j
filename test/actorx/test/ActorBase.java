@@ -14,10 +14,10 @@ import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
 import actorx.ExitType;
+import actorx.IThreadActorHandler;
 import actorx.LinkType;
 import actorx.Message;
-import actorx.MessageGuard;
-import actorx.IActorHandler;
+import actorx.Guard;
 import actorx.Packet;
 import actorx.Pattern;
 
@@ -33,7 +33,7 @@ public class ActorBase {
 		axs.startup();
 
 		Actor baseAx = axs.spawn();
-		ActorId aid = axs.spawn(baseAx, new IActorHandler() {
+		ActorId aid = axs.spawn(baseAx, new IThreadActorHandler() {
 			@Override
 			public void run(Actor self) throws Exception{
 				Packet pkt = self.recvPacket("INIT");
@@ -46,7 +46,7 @@ public class ActorBase {
 				
 				boolean goon = true;
 				while (goon){
-					try (MessageGuard guard = self.recv(patt)){
+					try (Guard guard = self.recv(patt)){
 						Message msg = guard.get();
 						if (msg == null){
 							// 超时

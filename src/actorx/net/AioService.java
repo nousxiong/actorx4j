@@ -12,17 +12,17 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import actorx.Actor;
 import actorx.ActorId;
-import actorx.Addon;
+import actorx.ActorAddon;
 import actorx.IRecvFilter;
 import actorx.Message;
-import actorx.MsgType;
+import actorx.AtomCode;
 
 /**
  * @author Xiong
  * @creation 2016年10月6日上午12:38:56
  *
  */
-public class AioService extends Addon implements IRecvFilter {
+public class AioService extends ActorAddon implements IRecvFilter {
 
 	public AioService(Actor hostAx) throws IOException{
 		super(hostAx);
@@ -109,11 +109,11 @@ public class AioService extends Addon implements IRecvFilter {
 	}
 	
 	static class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AbstractListenSession> {
-		private Addon addon;
+		private ActorAddon addon;
 		private ReadHandler readHandler;
 		private WriteHandler writeHandler;
 		
-		public AcceptHandler(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+		public AcceptHandler(ActorAddon addon, ReadHandler readHandler, WriteHandler writeHandler){
 			this.addon = addon;
 			this.readHandler = readHandler;
 			this.writeHandler = writeHandler;
@@ -124,23 +124,23 @@ public class AioService extends Addon implements IRecvFilter {
 			attachment.getAcceptor().accept(attachment, this);
 			AbstractAioSession as = attachment.makeAioSession(result);
 			as.onOpen(addon, readHandler, writeHandler);
-			addon.send(MsgType.OPEN, attachment, as);
+			addon.send(AtomCode.OPEN, attachment, as);
 		}
 
 		@Override
 		public void failed(Throwable exc, AbstractListenSession attachment) {
 			attachment.close();
-			addon.send(MsgType.ACCEPT_ERR, exc, attachment);
+			addon.send(AtomCode.ACCEPT_ERR, exc, attachment);
 		}
 		
 	}
 	
 	static class ConnectHandler implements CompletionHandler<Void, AbstractAioSession> {
-		private Addon addon;
+		private ActorAddon addon;
 		private ReadHandler readHandler;
 		private WriteHandler writeHandler;
 		
-		public ConnectHandler(Addon addon, ReadHandler readHandler, WriteHandler writeHandler){
+		public ConnectHandler(ActorAddon addon, ReadHandler readHandler, WriteHandler writeHandler){
 			this.addon = addon;
 			this.readHandler = readHandler;
 			this.writeHandler = writeHandler;
@@ -149,13 +149,13 @@ public class AioService extends Addon implements IRecvFilter {
 		@Override
 		public void completed(Void result, AbstractAioSession attachment) {
 			attachment.onOpen(addon, readHandler, writeHandler);
-			addon.send(MsgType.OPEN, attachment);
+			addon.send(AtomCode.OPEN, attachment);
 		}
 
 		@Override
 		public void failed(Throwable exc, AbstractAioSession attachment) {
 			attachment.closesocket();
-			addon.send(MsgType.CONN_ERR, exc, attachment);
+			addon.send(AtomCode.CONN_ERR, exc, attachment);
 		}
 		
 	}

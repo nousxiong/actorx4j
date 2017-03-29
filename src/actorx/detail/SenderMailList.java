@@ -5,7 +5,7 @@ package actorx.detail;
 
 import java.util.List;
 
-import actorx.MsgType;
+import actorx.AtomCode;
 import cque.IFreer;
 import cque.INode;
 
@@ -90,7 +90,7 @@ public class SenderMailList implements INode {
 		IMail itr = root;
 		do{
 			for (String type : matchedTypes){
-				if (MsgType.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					return itr;
@@ -241,7 +241,7 @@ public class SenderMailList implements INode {
 		
 		IMail itr = root;
 		do{
-			if (MsgType.equals(itr.getType(), type)){
+			if (AtomCode.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getSenderTypeNext();

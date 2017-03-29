@@ -10,10 +10,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import actorx.Actor;
@@ -21,11 +17,11 @@ import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
 import actorx.ExitType;
-import actorx.IActorHandler;
+import actorx.IThreadActorHandler;
 import actorx.LinkType;
 import actorx.Message;
-import actorx.MessageGuard;
-import actorx.MsgType;
+import actorx.Guard;
+import actorx.AtomCode;
 import actorx.Packet;
 import actorx.Pattern;
 import actorx.net.AbstractAioSession;
@@ -38,34 +34,6 @@ import actorx.net.AioService;
  *
  */
 public class NetBase {
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-	}
 	
 	static enum MsgCode {
 		ECHO((short) 1),
@@ -242,7 +210,7 @@ public class NetBase {
 		}
 	}
 	
-	static class AioClient implements IActorHandler {
+	static class AioClient implements IThreadActorHandler {
 
 		@Override
 		public void run(Actor self) throws Exception {
@@ -261,35 +229,35 @@ public class NetBase {
 			
 			int closed = 0;
 			Pattern pattern = new Pattern();
-			pattern.match(MsgType.OPEN, MsgType.CONN_ERR, MsgType.RECV, MsgType.EXCEPT, MsgType.CLOSE);
+			pattern.match(AtomCode.OPEN, AtomCode.CONN_ERR, AtomCode.RECV, AtomCode.EXCEPT, AtomCode.CLOSE);
 			
 			boolean goon = true;
 			while (goon){
-				try (MessageGuard guard = self.recv(pattern)){
+				try (Guard guard = self.recv(pattern)){
 					Message msg = guard.get();
 					String type = msg.getType();
 					switch (type){
-						case MsgType.OPEN: {
+						case AtomCode.OPEN: {
 							AioSession as = msg.getRaw();
 							as.sendEcho("Hi, my name is AioClient!");
 						}break;
-						case MsgType.CONN_ERR: {
+						case AtomCode.CONN_ERR: {
 							System.out.println("connect error");
 							Throwable exc = msg.getRaw();
 							throw exc;
 						}
-						case MsgType.RECV: {
+						case AtomCode.RECV: {
 							AioSession as = msg.getRaw();
 							as.close();
 							++closed;
 						}break;
-						case MsgType.CLOSE: {
+						case AtomCode.CLOSE: {
 							if (--totalNum == 0){
 								System.out.println("AioClient quiting ...");
 								goon = false;
 							}
 						}break;
-						case MsgType.EXCEPT: {
+						case AtomCode.EXCEPT: {
 							Throwable exc = msg.getRaw();
 							throw exc;
 						}
@@ -305,7 +273,7 @@ public class NetBase {
 		
 	}
 	
-	static class AioServer implements IActorHandler {
+	static class AioServer implements IThreadActorHandler {
 
 		@Override
 		public void run(Actor self) throws Exception {
@@ -323,32 +291,32 @@ public class NetBase {
 
 			int acceptOk = 0;
 			Pattern pattern = new Pattern();
-			pattern.match(MsgType.OPEN, MsgType.ACCEPT_ERR, MsgType.RECV, MsgType.EXCEPT, MsgType.CLOSE);
+			pattern.match(AtomCode.OPEN, AtomCode.ACCEPT_ERR, AtomCode.RECV, AtomCode.EXCEPT, AtomCode.CLOSE);
 			
 			// 发送准备完毕消息
 			self.send(sireAid, "READY");
 			
 			List<AbstractListenSession> lss = new ArrayList<AbstractListenSession>(addrNum);
 			while (true){
-				try (MessageGuard guard = self.recv(pattern)){
+				try (Guard guard = self.recv(pattern)){
 					Message msg = guard.get();
 					String type = msg.getType();
 					switch (type){
-						case MsgType.OPEN: {
+						case AtomCode.OPEN: {
 							AbstractListenSession ls = msg.getRaw();
 							lss.add(ls);
 							++acceptOk;
 						}break;
-						case MsgType.ACCEPT_ERR: {
+						case AtomCode.ACCEPT_ERR: {
 							Throwable exc = msg.getRaw();
 							throw exc;
 						}
-						case MsgType.RECV: {
+						case AtomCode.RECV: {
 							AioSession as = msg.getRaw();
 							EchoMessage echoMsg = msg.getRaw();
 							as.sendEcho(echoMsg.getEcho());
 						}break;
-						case MsgType.CLOSE: {
+						case AtomCode.CLOSE: {
 							if (--totalNum == 0){
 								System.out.println("AioServer quiting ...");
 								for (AbstractListenSession ls : lss){
@@ -356,7 +324,7 @@ public class NetBase {
 								}
 							}
 						}break;
-						case MsgType.EXCEPT: {
+						case AtomCode.EXCEPT: {
 							Throwable exc = msg.getRaw();
 							throw exc;
 						}

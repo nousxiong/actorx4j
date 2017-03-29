@@ -3,7 +3,7 @@
  */
 package actorx.detail;
 
-import actorx.MessageGuard;
+import actorx.Guard;
 import cque.INode;
 import cque.INodeFactory;
 
@@ -15,7 +15,7 @@ public class MessageGuardFactory implements INodeFactory {
 	
 	@Override
 	public INode createInstance() {
-		return new MessageGuard();
+		return new Guard();
 	}
 	
 }

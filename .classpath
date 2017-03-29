@@ -5,6 +5,10 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/cque.jar"/>
 	<classpathentry kind="lib" path="lib/adata.jar"/>
+	<classpathentry kind="lib" path="lib/guava-20.0.jar"/>
+	<classpathentry kind="lib" path="lib/kryo-4.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/kryo-serializers-0.41.jar"/>
+	<classpathentry kind="lib" path="lib/quasar-core-0.7.7.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

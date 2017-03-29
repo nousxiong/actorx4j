@@ -7,13 +7,8 @@ import static org.junit.Assert.*;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import actorx.IActorHandler;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
@@ -21,9 +16,10 @@ import actorx.ActorSystem;
 import actorx.ExitType;
 import actorx.IRecvFilter;
 import actorx.ISendFilter;
+import actorx.IThreadActorHandler;
 import actorx.LinkType;
 import actorx.Message;
-import actorx.MessageGuard;
+import actorx.Guard;
 import actorx.Packet;
 import actorx.Pattern;
 
@@ -33,34 +29,6 @@ import actorx.Pattern;
  * 测试过滤器
  */
 public class FilterBase {
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-	}
 	
 	class TypeSendFilter implements ISendFilter {
 
@@ -104,7 +72,7 @@ public class FilterBase {
 		axs.startup();
 
 		Actor baseAx = axs.spawn();
-		ActorId aid = axs.spawn(baseAx, new IActorHandler() {
+		ActorId aid = axs.spawn(baseAx, new IThreadActorHandler() {
 			@Override
 			public void run(Actor self) throws Exception{
 				Packet pkt = self.recvPacket("INIT");
@@ -119,7 +87,7 @@ public class FilterBase {
 				
 				boolean goon = true;
 				while (goon){
-					try (MessageGuard guard = self.recv(patt)){
+					try (Guard guard = self.recv(patt)){
 						Message msg = guard.get();
 						if (msg == null){
 							// 超时

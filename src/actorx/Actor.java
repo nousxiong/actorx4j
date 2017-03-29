@@ -8,8 +8,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import co.paralleluniverse.fibers.FiberScheduler;
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import actorx.detail.IMail;
 import actorx.detail.Mailbox;
 import actorx.detail.MessageGuardFactory;
@@ -22,22 +26,25 @@ import cque.SimpleNodePool;
 /**
  * @author Xiong
  */
-public class Actor implements Runnable {
+public class Actor {
 	// AxSystem
 	private ActorSystem axs;
 	// ActorId
 	private ActorId selfAid = null;
 	// handler
-	private IActorHandler handler;
+	private FiberScheduler fibSche;
+	private Executor executor;
+	private IFiberActorHandler fiberHandler;
+	private IThreadActorHandler threadHandler;
 	/**自己退出时需要发送EXIT消息的列表*/
 	private Set<ActorId> linkList;
 	/**消息队列*/
-	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>();
+	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>(new ReentrantLock());
 	/**邮箱*/
 	private Mailbox mailbox;
 	// 消息守护者池
-	private SimpleNodePool<MessageGuard> msgGuardPool = 
-		new SimpleNodePool<MessageGuard>(new MessageGuardFactory());
+	private SimpleNodePool<Guard> msgGuardPool = 
+		new SimpleNodePool<Guard>(new MessageGuardFactory());
 	// 本地消息池
 	private MpscNodePool<Message> msgPool;
 	// 需要匹配的模式，临时数据
@@ -48,17 +55,42 @@ public class Actor implements Runnable {
 	private Map<String, Set<IRecvFilter>> recvFilters;
 	/**是否已经退出*/
 	private boolean exited = false;
-	
+	/**链接锁*/
+	private ReentrantLock linkLock = new ReentrantLock();
 	
 	/**
-	 * 创建Actor
+	 * 创建自行调度的Actor
 	 * @param axs
 	 * @param aid
 	 */
-	public Actor(ActorSystem axs, ActorId aid, IActorHandler handler){
+	public Actor(ActorSystem axs, ActorId aid){
 		this.axs = axs;
 		this.selfAid = aid;
-		this.handler = handler;
+	}
+	
+	/**
+	 * 创建基于线程的actor
+	 * @param axs
+	 * @param aid
+	 * @param threadHandler
+	 */
+	public Actor(ActorSystem axs, ActorId aid, Executor executor, IThreadActorHandler threadHandler){
+		this.axs = axs;
+		this.selfAid = aid;
+		this.executor = executor;
+		this.threadHandler = threadHandler;
+	}
+	
+	/**
+	 * 创建基于纤程的Actor
+	 * @param axs
+	 * @param aid
+	 */
+	public Actor(ActorSystem axs, ActorId aid, FiberScheduler fibSche, IFiberActorHandler fiberHandler){
+		this.axs = axs;
+		this.selfAid = aid;
+		this.fibSche = fibSche;
+		this.fiberHandler = fiberHandler;
 	}
 	
 	/**
@@ -69,6 +101,22 @@ public class Actor implements Runnable {
 		return axs;
 	}
 	
+	/**
+	 * 返回纤程调度器，如果使用纤程创建的Actor，则返回不为空
+	 * @return
+	 */
+	public FiberScheduler getFiberScheduler() {
+		return fibSche;
+	}
+
+	/**
+	 * 返回线程调度器，如果使用线程创建的Actor，则返回不为空
+	 * @return
+	 */
+	public Executor getThreadExecutor() {
+		return executor;
+	}
+
 	/**
 	 * 返回一个自身的引用
 	 * @return
@@ -81,12 +129,12 @@ public class Actor implements Runnable {
 	 * 创建消息
 	 * @return
 	 */
-	public MessageGuard makeMessage(){
+	public Guard makeMessage(){
 		return returnMessage(makeNewMessage());
 	}
 	
 	/**
-	 * 链接指定的actor；如果链接成功，则返回{@link MsgType#LINK}；如果对方已经退出，则返回{@link MsgType#EXIT}
+	 * 链接指定的actor；如果链接成功，则返回{@link AtomCode#LINK}；如果对方已经退出，则返回{@link AtomCode#EXIT}
 	 * @param aid
 	 */
 	public void link(ActorId aid){
@@ -94,7 +142,7 @@ public class Actor implements Runnable {
 	}
 	
 	/**
-	 * 监视指定的actor；如果链接成功，则返回{@link MsgType#MONITOR}；如果对方已经退出，则返回{@link MsgType#EXIT}
+	 * 监视指定的actor；如果链接成功，则返回{@link AtomCode#MONITOR}；如果对方已经退出，则返回{@link AtomCode#EXIT}
 	 * @param aid
 	 */
 	public void monitor(ActorId aid){
@@ -111,7 +159,7 @@ public class Actor implements Runnable {
 		}
 		
 		Message msg = makeNewMessage();
-		sendMessage(toAid, MsgType.NULLTYPE, msg);
+		sendMessage(toAid, AtomCode.NULLTYPE, msg);
 	}
 	
 	/**
@@ -306,7 +354,7 @@ public class Actor implements Runnable {
 	 * @param type
 	 * @return
 	 */
-	public MessageGuard recv(String type){
+	public Guard recv(String type){
 		Pattern pattern = getPattern();
 		pattern.match(type);
 		return recvMessage(pattern);
@@ -318,7 +366,7 @@ public class Actor implements Runnable {
 	 * @param type2
 	 * @return
 	 */
-	public MessageGuard recv(String type1, String type2){
+	public Guard recv(String type1, String type2){
 		Pattern pattern = getPattern();
 		pattern.match(type1);
 		pattern.match(type2);
@@ -330,7 +378,7 @@ public class Actor implements Runnable {
 	 * @param types
 	 * @return
 	 */
-	public MessageGuard recv(String... types){
+	public Guard recv(String... types){
 		Pattern pattern = getPattern();
 		for (String type : types){
 			pattern.match(type);
@@ -343,7 +391,7 @@ public class Actor implements Runnable {
 	 * @param sender
 	 * @return
 	 */
-	public MessageGuard recv(ActorId sender){
+	public Guard recv(ActorId sender){
 		Pattern pattern = getPattern();
 		pattern.match(sender);
 		return recvMessage(pattern);
@@ -354,7 +402,7 @@ public class Actor implements Runnable {
 	 * @param sender
 	 * @return
 	 */
-	public MessageGuard recv(ActorId sender, String type){
+	public Guard recv(ActorId sender, String type){
 		Pattern pattern = getPattern();
 		pattern.match(sender, type);
 		return recvMessage(pattern);
@@ -365,7 +413,7 @@ public class Actor implements Runnable {
 	 * @param sender
 	 * @return
 	 */
-	public MessageGuard recv(ActorId sender, String type1, String type2){
+	public Guard recv(ActorId sender, String type1, String type2){
 		Pattern pattern = getPattern();
 		pattern.match(sender, type1, type2);
 		return recvMessage(pattern);
@@ -376,7 +424,7 @@ public class Actor implements Runnable {
 	 * @param sender
 	 * @return
 	 */
-	public MessageGuard recv(ActorId sender, String... types){
+	public Guard recv(ActorId sender, String... types){
 		Pattern pattern = getPattern();
 		pattern.match(sender, types);
 		return recvMessage(pattern);
@@ -386,7 +434,7 @@ public class Actor implements Runnable {
 	 * 接收消息
 	 * @return
 	 */
-	public MessageGuard recv(){
+	public Guard recv(){
 		Pattern pattern = getPattern();
 		return recvMessage(pattern);
 	}
@@ -396,7 +444,7 @@ public class Actor implements Runnable {
 	 * @param timeout
 	 * @return
 	 */
-	public MessageGuard recv(long timeout){
+	public Guard recv(long timeout){
 		Pattern pattern = getPattern();
 		pattern.after(timeout);
 		return recvMessage(pattern);
@@ -408,7 +456,7 @@ public class Actor implements Runnable {
 	 * @param timeUnit
 	 * @return
 	 */
-	public MessageGuard recv(long timeout, TimeUnit timeUnit){
+	public Guard recv(long timeout, TimeUnit timeUnit){
 		Pattern pattern = getPattern();
 		pattern.after(timeout, timeUnit);
 		return recvMessage(pattern);
@@ -419,7 +467,7 @@ public class Actor implements Runnable {
 	 * @param patt
 	 * @return
 	 */
-	public MessageGuard recv(Pattern pattern){
+	public Guard recv(Pattern pattern){
 		return recvMessage(pattern);
 	}
 
@@ -671,7 +719,7 @@ public class Actor implements Runnable {
 	/// 接收退出消息
 	///------------------------------------------------------------------------
 	/**
-	 * 接收{@link MsgType#EXIT}消息
+	 * 接收{@link AtomCode#EXIT}消息
 	 * @return
 	 */
 	public ActorExit recvExit(){
@@ -679,7 +727,7 @@ public class Actor implements Runnable {
 	}
 	
 	/**
-	 * 接收{@link MsgType#EXIT}消息
+	 * 接收{@link AtomCode#EXIT}消息
 	 * @param timeout
 	 * @return
 	 */
@@ -688,15 +736,15 @@ public class Actor implements Runnable {
 	}
 	
 	/**
-	 * 接收{@link MsgType#EXIT}消息
+	 * 接收{@link AtomCode#EXIT}消息
 	 * @param timeout
 	 * @param timeUnit
 	 * @return
 	 */
 	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
 		Pattern pattern = getPattern();
-		pattern.match(MsgType.EXIT);
-		try (MessageGuard guard = recv(pattern)){
+		pattern.match(AtomCode.EXIT);
+		try (Guard guard = recv(pattern)){
 			Message msg = guard.get();
 			if (msg == null){
 				return null;
@@ -714,7 +762,7 @@ public class Actor implements Runnable {
 	 * 运行Actor线程时，首先调用
 	 */
 	public void init(){
-		if (handler != null){
+		if (usingHandler()){
 			msgPool = MessagePool.getLocalPool(MessagePool.fetchInitList());
 		}
 	}
@@ -736,15 +784,19 @@ public class Actor implements Runnable {
 			return;
 		}
 
-		synchronized (this){
+		linkLock.lock();
+//		synchronized (this){
+		try{
 			// 发送退出消息给所有链接的Actor
 			if (!ContainerUtils.isEmpty(linkList)){
 				for (ActorId aid : linkList){
-					send(aid, MsgType.EXIT, axExit);
+					send(aid, AtomCode.EXIT, axExit);
 				}
 			}
 			
 			exited = true;
+		}finally{
+			linkLock.unlock();
 		}
 		
 		// 释放剩余未处理的消息
@@ -799,20 +851,41 @@ public class Actor implements Runnable {
 		Set<ActorId> linkList = getLinkList();
 		linkList.add(target);
 	}
-
-	@Override
-	public void run() {
+	
+	static void runOnFiber(Actor actor) throws SuspendExecution, InterruptedException{
 		ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
 		try{
-			init();
-			handler.run(this);
+			actor.init();
+			actor.fiberHandler.run(actor);
 		}catch (Throwable e){
 			axExit.setExitType(ExitType.EXCEPT);
 			String errmsg = ExceptionUtils.printStackTrace(e);
 			axExit.setErrmsg(errmsg);
 		}finally{
-			quit(axExit);
+			actor.quit(axExit);
 		}
+	}
+	
+	static void runOnThread(Actor actor){
+		ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
+		try{
+			actor.init();
+			actor.threadHandler.run(actor);
+		}catch (Throwable e){
+			axExit.setExitType(ExitType.EXCEPT);
+			String errmsg = ExceptionUtils.printStackTrace(e);
+			axExit.setErrmsg(errmsg);
+		}finally{
+			actor.quit(axExit);
+		}
+	}
+	
+	/**
+	 * 是否使用handler
+	 * @return
+	 */
+	private boolean usingHandler(){
+		return fiberHandler != null || threadHandler != null;
 	}
 	
 	private void link(ActorId aid, boolean isMonitor){
@@ -822,15 +895,18 @@ public class Actor implements Runnable {
 		
 		Actor ax = axs.getActor(aid);
 		if (ax == null){
-			axs.send(aid, selfAid, MsgType.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+			axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
 			return;
 		}
 		
-		String type = isMonitor ? MsgType.MONITOR : MsgType.LINK;
-		synchronized (ax){
+		String type = isMonitor ? AtomCode.MONITOR : AtomCode.LINK;
+		ReentrantLock linkLock = ax.linkLock;
+		linkLock.lock();
+//		synchronized (ax){
+		try{
 			// 获取锁后查一次此actor是否已经退出
 			if (ax.isExited()){
-				axs.send(aid, selfAid, MsgType.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+				axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
 				return;
 			}
 			
@@ -842,6 +918,8 @@ public class Actor implements Runnable {
 			ax.addLink(selfAid);
 			// 给自己发送监视成功的消息
 			axs.send(aid, selfAid, type);
+		}finally{
+			linkLock.unlock();
 		}
 	}
 	
@@ -881,7 +959,7 @@ public class Actor implements Runnable {
 		msgQue.put(msg);
 	}
 	
-	private MessageGuard recvMessage(Pattern pattern){
+	private Guard recvMessage(Pattern pattern){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
@@ -950,7 +1028,7 @@ public class Actor implements Runnable {
 	}
 	
 	private Packet recvMessage(Packet pkt, Pattern pattern){
-		try (MessageGuard guard = recvMessage(pattern)){
+		try (Guard guard = recvMessage(pattern)){
 			Message msg = guard.get();
 			if (msg == null){
 				return null;
@@ -962,12 +1040,12 @@ public class Actor implements Runnable {
 		}
 	}
 	
-	private MessageGuard returnMessage(Message msg){
+	private Guard returnMessage(Message msg){
 		return msgGuardPool.get().wrap(msg);
 	}
 	
 	private Message makeNewMessage(){
-		if (handler != null){
+		if (usingHandler()){
 			return Message.make(msgPool);
 		}else{
 			return Message.make();
@@ -975,7 +1053,7 @@ public class Actor implements Runnable {
 	}
 	
 	private Message makeMessage(Message src){
-		if (handler != null){
+		if (usingHandler()){
 			if (src != null){
 				return Message.make(src, msgPool);
 			}else{
