@@ -16,12 +16,9 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import actorx.detail.IMail;
 import actorx.detail.Mailbox;
-import actorx.detail.MessageGuardFactory;
 import actorx.util.ContainerUtils;
 import actorx.util.ExceptionUtils;
 import cque.IntrusiveMpscQueue;
-import cque.MpscNodePool;
-import cque.SimpleNodePool;
 
 /**
  * @author Xiong
@@ -42,11 +39,6 @@ public class Actor {
 	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>(new ReentrantLock());
 	/**邮箱*/
 	private Mailbox mailbox;
-	// 消息守护者池
-	private SimpleNodePool<Guard> msgGuardPool = 
-		new SimpleNodePool<Guard>(new MessageGuardFactory());
-	// 本地消息池
-	private MpscNodePool<Message> msgPool;
 	// 需要匹配的模式，临时数据
 	private Pattern pattern;
 	// 分类型发送Filters
@@ -762,9 +754,6 @@ public class Actor {
 	 * 运行Actor线程时，首先调用
 	 */
 	public void init(){
-		if (usingHandler()){
-			msgPool = MessagePool.getLocalPool(MessagePool.fetchInitList());
-		}
 	}
 
 	/**
@@ -878,14 +867,6 @@ public class Actor {
 		}finally{
 			actor.quit(axExit);
 		}
-	}
-	
-	/**
-	 * 是否使用handler
-	 * @return
-	 */
-	private boolean usingHandler(){
-		return fiberHandler != null || threadHandler != null;
 	}
 	
 	private void link(ActorId aid, boolean isMonitor){
@@ -1041,30 +1022,18 @@ public class Actor {
 	}
 	
 	private Guard returnMessage(Message msg){
-		return msgGuardPool.get().wrap(msg);
+		return GuardPool.borrowObject().wrap(msg);
 	}
 	
 	private Message makeNewMessage(){
-		if (usingHandler()){
-			return Message.make(msgPool);
-		}else{
-			return Message.make();
-		}
+		return Message.make();
 	}
 	
 	private Message makeMessage(Message src){
-		if (usingHandler()){
-			if (src != null){
-				return Message.make(src, msgPool);
-			}else{
-				return Message.make(msgPool);
-			}
+		if (src != null){
+			return Message.make(src);
 		}else{
-			if (src != null){
-				return Message.make(src);
-			}else{
-				return Message.make();
-			}
+			return Message.make();
 		}
 	}
 	

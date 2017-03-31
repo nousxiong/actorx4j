@@ -6,14 +6,13 @@ package actorx.detail;
 import java.util.List;
 
 import actorx.AtomCode;
-import cque.IFreer;
-import cque.INode;
+import cque.AbstractNode;
 
 /**
  * @author Xiong
  * 发送者邮件列表
  */
-public class SenderMailList implements INode {
+public class SenderMailList extends AbstractNode {
 	private IMail totalList;
 	private IMail typeList;
 	
@@ -253,47 +252,10 @@ public class SenderMailList implements INode {
 		return totalList == null && typeList == null;
 	}
 
-	/** 以下实现INode接口 */
-	private INode next;
-	private IFreer freer;
-	
 	@Override
-	public INode fetchNext() {
-		INode nx = next;
-		next = null;
-		return nx;
-	}
-
-	@Override
-	public INode getNext() {
-		return next;
-	}
-
-	@Override
-	public void onFree() {
-		next = null;
-		freer = null;
-		
+	protected void reset(){
 		totalList = null;
 		typeList = null;
-	}
-
-	@Override
-	public void onGet(IFreer freer) {
-		this.freer = freer;
-		this.next = null;
-	}
-
-	@Override
-	public void release() {
-		if (freer != null){
-			freer.free(this);
-		}
-	}
-
-	@Override
-	public void setNext(INode next) {
-		this.next = next;
 	}
 	
 }

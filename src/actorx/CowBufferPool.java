@@ -8,8 +8,7 @@ import java.util.List;
 
 import actorx.detail.CowBuffer;
 import actorx.detail.CowBufferFactory;
-import cque.ConcurrentNodePool;
-import cque.MpscNodePool;
+import cque.ConcurrentObjectPool;
 
 /**
  * @author Xiong
@@ -24,8 +23,8 @@ public class CowBufferPool {
 	private static final int DEFAULT_MAX_DECR_FACTOR = 10;
 	
 	/** 写时拷贝Buffer节点池 */
-	private static final List<ConcurrentNodePool<CowBuffer>> cpoolArray = 
-		new ArrayList<ConcurrentNodePool<CowBuffer>>(BUFFER_POOL_COUNT);
+	private static final List<ConcurrentObjectPool<CowBuffer>> cpoolArray = 
+		new ArrayList<ConcurrentObjectPool<CowBuffer>>(BUFFER_POOL_COUNT);
 	
 	static {
 		// 建立buffer的capacity 数组，j从7开始的原因是最小分配长度是128（1 << 7）
@@ -35,7 +34,7 @@ public class CowBufferPool {
 		capacityArray[capacityArray.length - 1] = Integer.MAX_VALUE;
 		
 		for (int capacity : capacityArray){
-			cpoolArray.add(new ConcurrentNodePool<CowBuffer>(new CowBufferFactory(capacity)));
+			cpoolArray.add(new ConcurrentObjectPool<CowBuffer>(new CowBufferFactory(capacity)));
 		}
 	}
 	
@@ -43,28 +42,35 @@ public class CowBufferPool {
 	
 	/**
 	 * 初始化size
+	 * @param poolCount
 	 * @param initCount
 	 * @param maxCount
 	 */
-	public static void init(int initCount, int maxCount){
-		init(initCount, DEFAULT_INIT_DECR_FACTOR, maxCount, DEFAULT_MAX_DECR_FACTOR);
+	public static void init(int poolCount, int initCount, int maxCount){
+		init(poolCount, initCount, DEFAULT_INIT_DECR_FACTOR, maxCount, DEFAULT_MAX_DECR_FACTOR);
 	}
 	
 	/**
 	 * 初始化size
+	 * @param poolSize
 	 * @param initCount
 	 * @param initDecrFactor
 	 * @param maxCount
 	 * @param maxDecrFactor
 	 */
-	public static void init(int initCount, int initDecrFactor, int maxCount, int maxDecrFactor){
+	public static void init(int poolCount, int initCount, int initDecrFactor, int maxCount, int maxDecrFactor){
 		int maxCachedIndex = getPoolIndex(maxCachedBufferSize);
 		for (int i=0; i<capacityArray.length; ++i){
-			ConcurrentNodePool<CowBuffer> cpool = cpoolArray.get(i);
+			int initSize = 0;
 			if (i <= maxCachedIndex){
-				cpool.setInitSize(initCount);
+				initSize = initCount;
 			}
-			cpool.setMaxSize(maxCount);
+			ConcurrentObjectPool<CowBuffer> cpool = 
+				new ConcurrentObjectPool<CowBuffer>(
+					new CowBufferFactory(capacityArray[i]),
+					poolCount, initSize, maxCount
+				);
+			cpoolArray.set(i, cpool);
 			initCount /= initDecrFactor;
 			maxCount /= maxDecrFactor;
 		}
@@ -74,58 +80,29 @@ public class CowBufferPool {
 	 * 从池中分配一个最小容量写时拷贝Buffer
 	 * @return 不会为null
 	 */
-	public static CowBuffer get(){
-		MpscNodePool<CowBuffer> pool = getLocalPool();
-		return get(pool);
+	public static CowBuffer borrowObject(){
+		return cpoolArray.get(0).borrowObject();
 	}
 	
 	/**
-	 * 从池中分配一个指定大小的写时拷贝Buffer
-	 * @return 不会为null
-	 */
-	public static CowBuffer get(int requestedCapacity){
-		MpscNodePool<CowBuffer> pool = getLocalPool(requestedCapacity);
-		return get(requestedCapacity, pool);
-	}
-	
-	/**
-	 * 使用用户之前缓存的池来分配一个写时拷贝Buffer
-	 * @param pool
-	 * @return 不会为null
-	 */
-	public static CowBuffer get(MpscNodePool<CowBuffer> pool){
-		assert pool == getLocalPool();
-		return cpoolArray.get(0).get(pool);
-	}
-	
-	/**
-	 * 使用用户之前缓存的池分配一个指定大小的写时拷贝Buffer
+	 * 分配一个指定大小的写时拷贝Buffer
 	 * @param requestedCapacity
 	 * @param pool
 	 * @return
 	 */
-	public static CowBuffer get(int requestedCapacity, MpscNodePool<CowBuffer> pool){
+	public static CowBuffer borrowObject(int requestedCapacity){
 		if (requestedCapacity > maxCachedBufferSize){
 			return new CowBuffer(requestedCapacity);
 		}
 		
-		assert pool == getLocalPool(requestedCapacity);
-		int index = getPoolIndex(requestedCapacity);
-		if (index < 0){
-			return new CowBuffer(requestedCapacity);
+		ConcurrentObjectPool<CowBuffer> cpool = getPool(requestedCapacity);
+		if (cpool == null){
+			return null;
 		}
-		return cpoolArray.get(index).get(pool);
+		return cpool.borrowObject();
 	}
 	
-	/**
-	 * 取得本地线程的池
-	 * @return
-	 */
-	public static MpscNodePool<CowBuffer> getLocalPool(){
-		return cpoolArray.get(0).getLocalPool();
-	}
-	
-	public static MpscNodePool<CowBuffer> getLocalPool(int requestedCapacity){
+	public static ConcurrentObjectPool<CowBuffer> getPool(int requestedCapacity){
 		if (requestedCapacity > maxCachedBufferSize){
 			return null;
 		}
@@ -134,7 +111,7 @@ public class CowBufferPool {
 		if (index < 0){
 			return null;
 		}
-		return cpoolArray.get(index).getLocalPool();
+		return cpoolArray.get(index);
 	}
 	
 	private static int getPoolIndex(int capacity){

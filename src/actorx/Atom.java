@@ -79,14 +79,11 @@ public class Atom {
 		return resultBuffer;
 	}
 
-	private static byte[] decodingTable = new byte[64];
-	static {
-		decodingTable = 
-			" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
-				.getBytes(StandardCharsets.US_ASCII);
-	}
+	private static final byte[] decodingTable = 
+		" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
+			.getBytes(StandardCharsets.US_ASCII);
 	
-	private static byte[] encodingTable = new byte[128];
+	private static final byte[] encodingTable = new byte[128];
 	static {
 		for (byte i=0; i<decodingTable.length; ++i){
 			encodingTable[decodingTable[i]] = i;

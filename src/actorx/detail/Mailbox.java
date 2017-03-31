@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import cque.SimpleNodePool;
+import cque.SingleObjectPool;
 import actorx.ActorId;
 import actorx.IRecvFilter;
 import actorx.Message;
@@ -36,7 +36,7 @@ public class Mailbox {
 	private IMail filteredTypeList;
 	private Map<ActorId, SenderMailList> filteredSenderMails;
 	
-	private SimpleNodePool<SenderMailList> pool;
+	private SingleObjectPool<SenderMailList> pool;
 	private List<String> senderMatchedTypes;
 	
 	/**
@@ -762,13 +762,13 @@ public class Mailbox {
 	}
 	
 	private SenderMailList makeSenderMailList(){
-		SimpleNodePool<SenderMailList> pool = getPool();
-		return pool.get();
+		SingleObjectPool<SenderMailList> pool = getPool();
+		return pool.borrowObject();
 	}
 	
-	private SimpleNodePool<SenderMailList> getPool(){
+	private SingleObjectPool<SenderMailList> getPool(){
 		if (pool == null){
-			pool = new SimpleNodePool<SenderMailList>(new SenderMailListFactory());
+			pool = new SingleObjectPool<SenderMailList>(new SenderMailListFactory());
 		}
 		return pool;
 	}

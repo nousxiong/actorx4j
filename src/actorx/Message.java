@@ -8,9 +8,8 @@ import actorx.detail.IMail;
 import actorx.detail.Pack;
 import adata.Base;
 import adata.Stream;
-import cque.IFreer;
 import cque.INode;
-import cque.MpscNodePool;
+import cque.IRecycler;
 
 /**
  * @author Xiong
@@ -28,41 +27,22 @@ public class Message extends Pack implements INode, IMail {
 	 * @return
 	 */
 	public static Message make(){
-		return make(MessagePool.getLocalPool());
-	}
-	
-	/**
-	 * 使用用户保存的本地池来创建消息
-	 * @param msgPool
-	 * @return
-	 */
-	public static Message make(MpscNodePool<Message> msgPool){
-		return MessagePool.get(msgPool);
-	}
-	
-	/**
-	 * 根据旧的消息创建，共享旧消息的写时拷贝Buffer
-	 * @param src
-	 * @return
-	 * @throws Exception 
-	 */
-	public static Message make(Message src){
-		return make(src, MessagePool.getLocalPool());
+		return MessagePool.borrowObject();
 	}
 
 	/**
-	 * 使用用户保存的本地池来创建消息
+	 * 根据旧的消息创建，共享旧消息的写时拷贝Buffer
 	 * @param src
 	 * @param msgPool
 	 * @return
 	 */
-	public static Message make(Message src, MpscNodePool<Message> msgPool){
-		Message msg = make(msgPool);
+	public static Message make(Message src){
+		Message msg = make();
 		msg.sender = src.sender;
 		msg.type = src.type;
 		
 		if (!src.argsIsEmpty() && src.cowBuffer == null){
-			src.cowBuffer = CowBufferPool.get();
+			src.cowBuffer = CowBufferPool.borrowObject();
 		}
 		
 		if (src.cowBuffer != null){
@@ -219,7 +199,7 @@ public class Message extends Pack implements INode, IMail {
 		
 		int length = argsLength();
 		if (cowBuffer == null){
-			cowBuffer = CowBufferPool.get(length);
+			cowBuffer = CowBufferPool.borrowObject(length);
 		}else{
 			CowBuffer newBuffer = cowBuffer.reserve(length);
 			if (newBuffer != cowBuffer){
@@ -359,16 +339,16 @@ public class Message extends Pack implements INode, IMail {
 	
 	/** 以下实现INode接口 */
 	private INode next;
-	private IFreer freer;
+	private IRecycler recycler;
 
 	@Override
 	public void release(){
-		if (freer != null){
+		if (recycler != null){
 			if (cowBuffer != null){
 				cowBuffer.decrRef();
 				cowBuffer = null;
 			}
-			freer.free(this);
+			recycler.returnObject(this);
 		}
 	}
 
@@ -385,11 +365,11 @@ public class Message extends Pack implements INode, IMail {
 	}
 
 	@Override
-	public void onFree(){
+	public void onReturn(){
 		super.clear();
 		writeIndex = 0;
 		next = null;
-		freer = null;
+		recycler = null;
 		
 		totalNext = null;
 		totalPrev = null;
@@ -407,8 +387,8 @@ public class Message extends Pack implements INode, IMail {
 	}
 
 	@Override
-	public void onGet(IFreer freer){
-		this.freer = freer;
+	public void onBorrowed(IRecycler recycler){
+		this.recycler = recycler;
 		this.next = null;
 	}
 

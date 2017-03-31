@@ -6,14 +6,13 @@ package actorx.detail;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import actorx.CowBufferPool;
-import cque.IFreer;
-import cque.INode;
+import cque.AbstractNode;
 
 /**
  * @author Xiong
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
-public class CowBuffer implements INode {
+public class CowBuffer extends AbstractNode {
 	private byte[] buffer;
 	private int size;
 	private AtomicInteger refCount = new AtomicInteger(0);
@@ -29,7 +28,7 @@ public class CowBuffer implements INode {
 	 * @return
 	 */
 	public CowBuffer copyOnWrite(){
-		CowBuffer cowBuffer = CowBufferPool.get(buffer.length);
+		CowBuffer cowBuffer = CowBufferPool.borrowObject(buffer.length);
 		copy(buffer, cowBuffer, size);
 		decrRef();
 		return cowBuffer;
@@ -57,7 +56,7 @@ public class CowBuffer implements INode {
 			return this;
 		}
 		
-		CowBuffer newBuffer = CowBufferPool.get(size + length);
+		CowBuffer newBuffer = CowBufferPool.borrowObject(size + length);
 		copy(buffer, newBuffer, size);
 		return newBuffer;
 	}
@@ -114,46 +113,14 @@ public class CowBuffer implements INode {
 		}
 		dest.size = len;
 	}
-	
-	/** 以下实现INode接口 */
-	private INode next;
-	private IFreer freer;
 
 	@Override
-	public void release(){
-		if (freer != null){
-			freer.free(this);
-		}
-	}
-
-	@Override
-	public INode getNext(){
-		return next;
-	}
-
-	@Override
-	public INode fetchNext(){
-		INode nx = next;
-		next = null;
-		return nx;
-	}
-
-	@Override
-	public void onFree(){
-		next = null;
-		freer = null;
-		size = 0;
-	}
-
-	@Override
-	public void onGet(IFreer freer){
-		this.freer = freer;
-		this.next = null;
+	protected void init(){
 		this.incrRef();
 	}
 
 	@Override
-	public void setNext(INode next){
-		this.next = next;
+	protected void reset(){
+		size = 0;
 	}
 }
