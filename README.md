@@ -5,14 +5,21 @@ Usage
 --------
 
 Add dist and lib's jars into your java project, and 
+```bash
+-javaagent:<path-of-quasar-core-0.x.x.jar>
+```
+ if you want use fiber actor;
 
--javaagent:<path-of-quasar-core-0.x.x.jar> if you want use fiber actor;
-
-Another option is -Dco.paralleluniverse.fibers.detectRunawayFibers=false to disable quasar detectRunawayFibers warning.
+Another option is 
+```bash
+-Dco.paralleluniverse.fibers.detectRunawayFibers=false
+```
+ to disable quasar detectRunawayFibers warning.
 
 For instance: 
-
-java -Djava.ext.dirs=<dir of all dep jars> -javaagent:<path-of-quasar-core-0.x.x.jar> <your-java-app-main-class>
+```bash
+java -Djava.ext.dirs=<dir-of-all-dep-jars> -javaagent:<path-of-quasar-core-0.x.x.jar> <your-java-app-main-class>
+```
 
 
 Dependencies
