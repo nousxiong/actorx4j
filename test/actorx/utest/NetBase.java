@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx.test;
+package actorx.utest;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -12,17 +12,18 @@ import java.util.List;
 
 import org.junit.Test;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import cque.util.PoolGuard;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
 import actorx.ExitType;
+import actorx.IFiberActorHandler;
 import actorx.IThreadActorHandler;
 import actorx.LinkType;
 import actorx.Message;
-import actorx.Guard;
 import actorx.AtomCode;
-import actorx.Packet;
 import actorx.Pattern;
 import actorx.net.AbstractAioSession;
 import actorx.net.AbstractListenSession;
@@ -210,14 +211,14 @@ public class NetBase {
 		}
 	}
 	
-	static class AioClient implements IThreadActorHandler {
+	static class AioClient implements IFiberActorHandler {
 
 		@Override
-		public void run(Actor self) throws Exception {
-			Packet pkt = self.recvPacket("INIT");
-			int connNum = pkt.getInt();
-			int addrNum = pkt.getInt();
-			int startPort = pkt.getInt();
+		public void run(Actor self) throws SuspendExecution, Exception {
+			Message cmsg = self.recv("INIT");
+			int connNum = cmsg.getInt();
+			int addrNum = cmsg.getInt();
+			int startPort = cmsg.getInt();
 			int totalNum = connNum * addrNum;
 			
 			AioService aioSvc = new AioService(self);
@@ -233,7 +234,7 @@ public class NetBase {
 			
 			boolean goon = true;
 			while (goon){
-				try (Guard guard = self.recv(pattern)){
+				try (PoolGuard guard = self.precv(pattern)){
 					Message msg = guard.get();
 					String type = msg.getType();
 					switch (type){
@@ -277,11 +278,11 @@ public class NetBase {
 
 		@Override
 		public void run(Actor self) throws Exception {
-			Packet pkt = self.recvPacket("INIT");
-			ActorId sireAid = pkt.getSender();
-			int acceptNum = pkt.getInt();
-			int addrNum = pkt.getInt();
-			int startPort = pkt.getInt();
+			Message cmsg = self.recv("INIT");
+			ActorId sireAid = cmsg.getSender();
+			int acceptNum = cmsg.getInt();
+			int addrNum = cmsg.getInt();
+			int startPort = cmsg.getInt();
 			int totalNum = acceptNum * addrNum;
 
 			AioService aioSvc = new AioService(self);
@@ -298,7 +299,7 @@ public class NetBase {
 			
 			List<AbstractListenSession> lss = new ArrayList<AbstractListenSession>(addrNum);
 			while (true){
-				try (Guard guard = self.recv(pattern)){
+				try (PoolGuard guard = self.precv(pattern)){
 					Message msg = guard.get();
 					String type = msg.getType();
 					switch (type){
@@ -352,7 +353,7 @@ public class NetBase {
 		Actor baseAx = axs.spawn();
 		ActorId svrAid = axs.spawn(baseAx, new AioServer(), LinkType.MONITORED);
 		baseAx.send(svrAid, "INIT", connNum, addrNum, startPort);
-		baseAx.recvPacket("READY");
+		baseAx.recv("READY");
 		
 		ActorId clnAid = axs.spawn(baseAx, new AioClient(), LinkType.MONITORED);
 		baseAx.send(clnAid, "INIT", connNum, addrNum, startPort);

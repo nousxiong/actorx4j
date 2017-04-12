@@ -19,4 +19,20 @@ public final class StringUtils {
 		return str == null || str.isEmpty();
 	}
 	
+	/**
+	 * 比较两个字符串
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	public static boolean equals(String lhs, String rhs){
+		if (lhs == null && rhs == null){
+			return true;
+		}else if (lhs == null || rhs == null){
+			return false;
+		}
+		
+		return lhs.equals(rhs);
+	}
+	
 }

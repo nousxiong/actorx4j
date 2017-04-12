@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx;
+package actorx.util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +34,7 @@ public class CowBufferPool {
 		capacityArray[capacityArray.length - 1] = Integer.MAX_VALUE;
 		
 		for (int capacity : capacityArray){
-			cpoolArray.add(new ConcurrentObjectPool<CowBuffer>(new CowBufferFactory(capacity)));
+			cpoolArray.add(new ConcurrentObjectPool<CowBuffer>(new CowBufferFactory(capacity), 1, 0, 1024));
 		}
 	}
 	

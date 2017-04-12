@@ -5,19 +5,19 @@ package actorx;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import actorx.util.Atom;
+import actorx.util.ConcurrentHashMap;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
-import actorx.util.ExceptionUtils;
+import co.paralleluniverse.fibers.Suspendable;
 
 /**
  * @author Xiong
@@ -28,7 +28,7 @@ public class ActorSystem {
 	/** 启动时间戳 */
 	private long timestamp;
 	/** actor全局表 */
-	private Map<ActorId, Actor> actorMap = new ConcurrentHashMap<ActorId, Actor>();
+	private ConcurrentHashMap<ActorId, Actor> actorMap = new ConcurrentHashMap<ActorId, Actor>();
 	// ChannelGroup
 	private AsynchronousChannelGroup chanGroup;
 	/** Actor线程池 */
@@ -79,7 +79,8 @@ public class ActorSystem {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
+	@Suspendable
 	public void shutdown(){
 		chanGroup.shutdown();
 		if (!outerThreadPool && actorThreadPool != chanThreadPool){
@@ -131,6 +132,7 @@ public class ActorSystem {
 	 * 产生一个actor，自己调度
 	 * @return 新Actor
 	 */
+	@Suspendable
 	public Actor spawn(){
 		ActorId aid = generateActorId();
 		Actor actor = new Actor(this, aid);
@@ -143,6 +145,7 @@ public class ActorSystem {
 	 * @param sire 父Actor
 	 * @return 新Actor
 	 */
+	@Suspendable
 	public Actor spawn(Actor sire){
 		return spawn(sire, LinkType.NO_LINK);
 	}
@@ -153,6 +156,7 @@ public class ActorSystem {
 	 * @param link 链接关系类型
 	 * @return 新Actor
 	 */
+	@Suspendable
 	public Actor spawn(Actor sire, LinkType link){
 		Actor actor = spawn();
 		addLink(sire, actor, link);
@@ -164,6 +168,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(IThreadActorHandler ah){
 		return spawn(actorThreadPool, ah);
 	}
@@ -173,6 +178,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(IFiberActorHandler ah){
 		return spawn(DefaultFiberScheduler.getInstance(), ah);
 	}
@@ -183,27 +189,18 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Executor executor, final IThreadActorHandler ah){
 		if (executor == null){
 			throw new NullPointerException();
 		}
 		
-		final Actor actor = makeActor(executor, ah);
+		final Actor actor = makeActor(executor);
 		ActorId aid = actor.getActorId();
 		executor.execute(new Runnable() {
 			@Override
 			public void run() {
-				ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
-				try{
-					actor.init();
-					ah.run(actor);
-				}catch (Throwable e){
-					axExit.setExitType(ExitType.EXCEPT);
-					String errmsg = ExceptionUtils.printStackTrace(e);
-					axExit.setErrmsg(errmsg);
-				}finally{
-					actor.quit(axExit);
-				}
+				Actor.runOnThread(actor, ah);
 			}
 		});
 		return aid;
@@ -215,18 +212,19 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
-	public ActorId spawn(FiberScheduler fibSche, IFiberActorHandler ah){
+	@Suspendable
+	public ActorId spawn(FiberScheduler fibSche, final IFiberActorHandler ah){
 		if (fibSche == null){
 			throw new NullPointerException();
 		}
 		
-		final Actor actor = makeActor(fibSche, ah);
+		final Actor actor = makeActor(fibSche);
 		ActorId aid = actor.getActorId();
 		new Fiber<Void>(fibSche) {
 			private static final long serialVersionUID = 2841359941298581576L;
 			@Override
 			protected Void run() throws SuspendExecution, InterruptedException {
-				Actor.runOnFiber(actor);
+				Actor.runOnFiber(actor, ah);
 				return null;
 			}
 		}.start();
@@ -239,6 +237,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, IThreadActorHandler ah){
 		return spawn(sire, ah, LinkType.NO_LINK);
 	}
@@ -249,6 +248,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, IFiberActorHandler ah){
 		return spawn(sire, ah, LinkType.NO_LINK);
 	}
@@ -260,6 +260,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, Executor executor, IThreadActorHandler ah){
 		return spawn(sire, executor, ah, LinkType.NO_LINK);
 	}
@@ -271,6 +272,7 @@ public class ActorSystem {
 	 * @param ah 可运行单元
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, FiberScheduler fibSche, IFiberActorHandler ah){
 		return spawn(sire, fibSche, ah, LinkType.NO_LINK);
 	}
@@ -282,6 +284,7 @@ public class ActorSystem {
 	 * @param link 链接关系类型
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, IThreadActorHandler ah, LinkType link){
 		return spawn(sire, actorThreadPool, ah, link);
 	}
@@ -293,6 +296,7 @@ public class ActorSystem {
 	 * @param link 链接关系类型
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, IFiberActorHandler ah, LinkType link){
 		return spawn(sire, DefaultFiberScheduler.getInstance(), ah, link);
 	}
@@ -305,28 +309,19 @@ public class ActorSystem {
 	 * @param link 链接关系类型
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, Executor executor, final IThreadActorHandler ah, LinkType link){
 		if (executor == null){
 			throw new NullPointerException();
 		}
 		
-		final Actor actor = makeActor(executor, ah);
+		final Actor actor = makeActor(executor);
 		addLink(sire, actor, link);
 		ActorId aid = actor.getActorId();
 		executor.execute(new Runnable() {
 			@Override
 			public void run() {
-				ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
-				try{
-					actor.init();
-					ah.run(actor);
-				}catch (Throwable e){
-					axExit.setExitType(ExitType.EXCEPT);
-					String errmsg = ExceptionUtils.printStackTrace(e);
-					axExit.setErrmsg(errmsg);
-				}finally{
-					actor.quit(axExit);
-				}
+				Actor.runOnThread(actor, ah);
 			}
 		});
 		return aid;
@@ -340,19 +335,20 @@ public class ActorSystem {
 	 * @param link 链接关系类型
 	 * @return 新Actor的Id
 	 */
+	@Suspendable
 	public ActorId spawn(Actor sire, FiberScheduler fibSche, final IFiberActorHandler ah, LinkType link){
 		if (fibSche == null){
 			throw new NullPointerException();
 		}
 		
-		final Actor actor = makeActor(fibSche, ah);
+		final Actor actor = makeActor(fibSche);
 		addLink(sire, actor, link);
 		ActorId aid = actor.getActorId();
 		new Fiber<Void>(fibSche) {
 			private static final long serialVersionUID = 2841359941298581576L;
 			@Override
 			protected Void run() throws SuspendExecution, InterruptedException {
-				Actor.runOnFiber(actor);
+				Actor.runOnFiber(actor, ah);
 				return null;
 			}
 		}.start();
@@ -373,6 +369,7 @@ public class ActorSystem {
 	 * @param toAid
 	 * @param msg
 	 */
+	@Suspendable
 	public void send(ActorId toAid, Message msg){
 		if (!Actor.sendMessage(this, toAid, msg)){
 			msg.release();
@@ -384,6 +381,7 @@ public class ActorSystem {
 	 * @param fromAid
 	 * @param toAid
 	 */
+	@Suspendable
 	public void send(ActorId fromAid, ActorId toAid){
 		Message msg = Message.make();
 		
@@ -398,8 +396,26 @@ public class ActorSystem {
 	 * @param fromAid
 	 * @param toAid
 	 * @param type
+	 */
+	@Suspendable
+	public void send(ActorId fromAid, ActorId toAid, String type){
+		Message msg = Message.make();
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	/**
+	 * 发送消息
+	 * @param fromAid
+	 * @param toAid
+	 * @param type
 	 * @param arg
 	 */
+	@Suspendable
 	public <A> void send(ActorId fromAid, ActorId toAid, String type, A arg){
 		if (arg == null){
 			throw new NullPointerException();
@@ -423,6 +439,7 @@ public class ActorSystem {
 	 * @param arg
 	 * @param arg1
 	 */
+	@Suspendable
 	public <A, A1> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1){
 		if (arg == null){
 			throw new NullPointerException();
@@ -451,6 +468,7 @@ public class ActorSystem {
 	 * @param arg1
 	 * @param arg2
 	 */
+	@Suspendable
 	public <A, A1, A2> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
 		if (arg == null){
 			throw new NullPointerException();
@@ -481,6 +499,7 @@ public class ActorSystem {
 	 * @param type
 	 * @param args 可以为null
 	 */
+	@Suspendable
 	public void send(ActorId fromAid, ActorId toAid, String type, Object... args){
 		Message msg = Message.make();
 		if (args != null){
@@ -503,10 +522,12 @@ public class ActorSystem {
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
+	@Suspendable
 	Actor getActor(ActorId aid){
 		return actorMap.get(aid);
 	}
-	
+
+	@Suspendable
 	boolean removeActor(ActorId aid){
 		return actorMap.remove(aid) != null;
 	}
@@ -521,7 +542,7 @@ public class ActorSystem {
 			index = 0;
 		}
 		this.currentIdBase = index;
-		return new ActorId(axid, timestamp, id, id);
+		return new ActorId(axid, timestamp, id);
 	}
 	
 	private static void addLink(Actor sire, Actor child, LinkType link){
@@ -532,25 +553,19 @@ public class ActorSystem {
 			child.addLink(sire.getActorId());
 		}
 	}
-	
-	private Actor makeActor(FiberScheduler fibSche, IFiberActorHandler ah){
-		if (ah == null){
-			throw new NullPointerException();
-		}
-		
+
+	@Suspendable
+	private Actor makeActor(FiberScheduler fibSche){
 		ActorId aid = generateActorId();
-		Actor actor = new Actor(this, aid, fibSche, ah);
+		Actor actor = new Actor(this, aid, fibSche);
 		actorMap.put(aid, actor);
 		return actor;
 	}
-	
-	private Actor makeActor(Executor executor, IThreadActorHandler ah){
-		if (ah == null){
-			throw new NullPointerException();
-		}
-		
+
+	@Suspendable
+	private Actor makeActor(Executor executor){
 		ActorId aid = generateActorId();
-		Actor actor = new Actor(this, aid, executor, ah);
+		Actor actor = new Actor(this, aid, executor);
 		actorMap.put(aid, actor);
 		return actor;
 	}

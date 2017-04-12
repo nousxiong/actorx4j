@@ -1,8 +1,9 @@
 /**
  * 
  */
-package actorx;
+package actorx.util;
 
+import actorx.Message;
 import actorx.detail.MessageFactory;
 import cque.ConcurrentObjectPool;
 

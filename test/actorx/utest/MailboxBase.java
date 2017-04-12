@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx.test;
+package actorx.utest;
 
 import static org.junit.Assert.*;
 
@@ -20,12 +20,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import actorx.ActorId;
-import actorx.Atom;
 import actorx.IRecvFilter;
 import actorx.Message;
 import actorx.AtomCode;
 import actorx.detail.IMail;
 import actorx.detail.Mailbox;
+import actorx.util.Atom;
 
 /**
  * @author Xiong
@@ -55,7 +55,7 @@ public class MailboxBase {
 		mailbox = new Mailbox();
 		aids = new ActorId[AID_CNT];
 		for (int i=0; i<aids.length; ++i){
-			aids[i] = new ActorId(Atom.to("AXS"), timestamp, i, i);
+			aids[i] = new ActorId(Atom.to("AXS"), timestamp, i);
 		}
 		types = new String[TYPE_CNT];
 		for (int i=0; i<types.length; ++i){

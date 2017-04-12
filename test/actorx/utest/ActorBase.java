@@ -1,38 +1,7 @@
-# actorx4j
-An actor-model based communication library(Java version)
-
-Usage
---------
-
-Add dist and lib's jars into your java project, and 
-
--javaagent:<path-of-quasar-core-0.x.x.jar> if you want use fiber actor;
-
-Another option is -Dco.paralleluniverse.fibers.detectRunawayFibers=false to disable quasar detectRunawayFibers warning.
-
-For instance: 
-
-java -Djava.ext.dirs=<dir of all dep jars> -javaagent:<path-of-quasar-core-0.x.x.jar> <your-java-app-main-class>
-
-
-Dependencies
---------
-
-https://github.com/nousxiong/cque4j
-
-https://github.com/lordoffox/adata
-
-https://github.com/puniverse/quasar
-
-
-Example
---------
-
-```java
 /**
  * 
  */
-package actorx.test;
+package actorx.utest;
 
 import static org.junit.Assert.*;
 
@@ -175,5 +144,3 @@ public class ActorBase {
 		axs.shutdown();
 	}
 }
-
-```

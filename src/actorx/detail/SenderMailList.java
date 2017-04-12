@@ -5,14 +5,13 @@ package actorx.detail;
 
 import java.util.List;
 
-import actorx.AtomCode;
-import cque.AbstractNode;
+import actorx.util.StringUtils;
 
 /**
  * @author Xiong
  * 发送者邮件列表
  */
-public class SenderMailList extends AbstractNode {
+public class SenderMailList extends cque.AbstractNode {
 	private IMail totalList;
 	private IMail typeList;
 	
@@ -88,8 +87,10 @@ public class SenderMailList extends AbstractNode {
 		IMail root = typeList;
 		IMail itr = root;
 		do{
-			for (String type : matchedTypes){
-				if (AtomCode.equals(itr.getType(), type)){
+//			for (String type : matchedTypes){
+			for (int i=0, size=matchedTypes.size(); i<size; ++i){
+				String type = matchedTypes.get(i);
+				if (StringUtils.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					return itr;
@@ -240,7 +241,7 @@ public class SenderMailList extends AbstractNode {
 		
 		IMail itr = root;
 		do{
-			if (AtomCode.equals(itr.getType(), type)){
+			if (StringUtils.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getSenderTypeNext();
@@ -253,7 +254,7 @@ public class SenderMailList extends AbstractNode {
 	}
 
 	@Override
-	protected void reset(){
+	protected void resetNode(){
 		totalList = null;
 		typeList = null;
 	}

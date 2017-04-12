@@ -1,11 +1,11 @@
 /**
  * 
  */
-package actorx.test;
+package actorx.utest;
 
 import org.junit.Test;
 
-import actorx.Atom;
+import actorx.util.Atom;
 
 /**
  * @author Xiong

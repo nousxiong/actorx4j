@@ -38,6 +38,16 @@ public class Pattern {
 		return this;
 	}
 	
+	public Pattern match(String type1, String type2, String type3){
+		if (matchedTypes == null){
+			matchedTypes = new ArrayList<String>(3);
+		}
+		matchedTypes.add(type1);
+		matchedTypes.add(type2);
+		matchedTypes.add(type3);
+		return this;
+	}
+	
 	public Pattern match(String... types){
 		if (matchedTypes == null){
 			matchedTypes = new ArrayList<String>(types.length);
@@ -75,6 +85,17 @@ public class Pattern {
 		return this;
 	}
 	
+	public Pattern match(ActorId aid, String type1, String type2, String type3){
+		if (matchedActors == null){
+			matchedActors = new ArrayList<Object>(4);
+		}
+		matchedActors.add(aid);
+		matchedActors.add(type1);
+		matchedActors.add(type2);
+		matchedActors.add(type3);
+		return this;
+	}
+	
 	public Pattern match(ActorId aid, String... types){
 		if (matchedActors == null){
 			matchedActors = new ArrayList<Object>(1 + types.length);
@@ -87,7 +108,7 @@ public class Pattern {
 	}
 	
 	public Pattern after(long timeout){
-		return after(timeout, TimeUnit.MILLISECONDS);
+		return after(timeout, DEFAULT_TIMEUNIT);
 	}
 	
 	public Pattern after(long timeout, TimeUnit timeUnit){
@@ -138,6 +159,6 @@ public class Pattern {
 			matchedActors.clear();
 		}
 		timeout = Long.MAX_VALUE;
-		timeUnit = TimeUnit.MILLISECONDS;
+		timeUnit = DEFAULT_TIMEUNIT;
 	}
 }

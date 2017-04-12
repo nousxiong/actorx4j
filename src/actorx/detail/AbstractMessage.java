@@ -6,23 +6,26 @@ package actorx.detail;
 import java.util.ArrayList;
 import java.util.List;
 
+import cque.AbstractNode;
 import actorx.ActorId;
 import actorx.AtomCode;
+import actorx.Message;
 import actorx.util.ContainerUtils;
 import adata.Base;
 import adata.Stream;
 
 /**
  * @author Xiong
- * 包
+ * 抽象消息
  */
-public abstract class Pack {
+public abstract class AbstractMessage extends AbstractNode {
 	protected ActorId sender = ActorId.NULLAID;
 	protected String type = AtomCode.NULLTYPE;
 	// 当前未读过的序列化的字节位置
 	protected int readPos;
 	// 当前未读过的参数的索引
 	protected int readIndex;
+	protected CowBuffer cowBuffer;
 	private static ThreadLocal<Stream> streamTLS = new ThreadLocal<Stream>();
 	
 	public ActorId getSender(){
@@ -93,6 +96,38 @@ public abstract class Pack {
 		argsSet(readIndex, t);
 		endRead(stream);
 		return t;
+	}
+	
+	protected Message getMsg(CowBuffer cowBuffer, Message msg){
+		Message arg = getArg();
+		if (arg != null){
+			return arg;
+		}
+
+		byte[] buffer = cowBuffer.getBuffer();
+		Stream stream = getStream();
+		beginRead(stream, buffer);
+		msg.read(stream);
+		argsSet(readIndex, msg);
+		endRead(stream);
+		return msg;
+	}
+	
+	protected Message getMsg(CowBuffer cowBuffer){
+		Message arg = getArg();
+		if (arg != null){
+			return arg;
+		}
+	
+		byte[] buffer = cowBuffer.getBuffer();
+		Message msg = new Message();
+		
+		Stream stream = getStream();
+		beginRead(stream, buffer);
+		msg.read(stream);
+		argsSet(readIndex, msg);
+		endRead(stream);
+		return msg;
 	}
 	
 	protected byte getByte(CowBuffer cowBuffer){
@@ -242,6 +277,9 @@ public abstract class Pack {
 	private void beginRead(Stream stream, byte[] buffer){
 		stream.clearRead();
 		stream.setReadBuffer(buffer);
+		if (readPos == 0){
+			readPos = Stream.fixSizeOfInt32();
+		}
 		stream.skipRead(readPos);
 	}
 	
@@ -252,22 +290,32 @@ public abstract class Pack {
 	}
 	
 	/** 以下Args封装 */
-	private int argsSize = 0;
+	protected int argsSize = 0;
 	private Object arg0;
 	private Object arg1;
 	private Object arg2;
 	private Object arg3;
 	private Object arg4;
+	private Object arg5;
+	private Object arg6;
+	private Object arg7;
+	private Object arg8;
+	private Object arg9;
 	private List<Object> args;
-	private static final int MAX_ARG_CACHE_NUM = 5;
+	private static final int MAX_ARG_CACHE_NUM = 10;
 	
-	protected void argsCopyFrom(Pack other){
+	protected void argsCopyFrom(AbstractMessage other){
 		argsSize = other.argsSize;
 		arg0 = other.arg0;
 		arg1 = other.arg1;
 		arg2 = other.arg2;
 		arg3 = other.arg3;
 		arg4 = other.arg4;
+		arg5 = other.arg5;
+		arg6 = other.arg6;
+		arg7 = other.arg7;
+		arg8 = other.arg8;
+		arg9 = other.arg9;
 		if (!ContainerUtils.isEmpty(other.args)){
 			if (args == null){
 				args = new ArrayList<Object>(other.args.size());
@@ -282,9 +330,14 @@ public abstract class Pack {
 		}
 	}
 	
+	public int argsSize(){
+		return argsSize;
+	}
+	
 	protected void argsClear(){
 		argsSize = 0;
 		arg0 = arg1 = arg2 = arg3 = arg4 = null;
+		arg5 = arg6 = arg7 = arg8 = arg9 = null;
 		if (!ContainerUtils.isEmpty(args)){
 			args.clear();
 		}
@@ -297,6 +350,11 @@ public abstract class Pack {
 		case 2: arg2 = o; break;
 		case 3: arg3 = o; break;
 		case 4: arg4 = o; break;
+		case 5: arg5 = o; break;
+		case 6: arg6 = o; break;
+		case 7: arg7 = o; break;
+		case 8: arg8 = o; break;
+		case 9: arg9 = o; break;
 		default:
 			if (args == null){
 				args = new ArrayList<Object>(1);
@@ -309,7 +367,7 @@ public abstract class Pack {
 	
 	protected Object argsGet(int index){
 		if (index < 0 || index >= argsSize){
-			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize");
+			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize, index: "+index);
 		}
 		
 		switch (index){
@@ -318,6 +376,11 @@ public abstract class Pack {
 		case 2: return arg2;
 		case 3: return arg3;
 		case 4: return arg4;
+		case 5: return arg5;
+		case 6: return arg6;
+		case 7: return arg7;
+		case 8: return arg8;
+		case 9: return arg9;
 		default: 
 			if (!ContainerUtils.isEmpty(args)){
 				return args.get(index - MAX_ARG_CACHE_NUM);
@@ -329,7 +392,7 @@ public abstract class Pack {
 	
 	protected void argsSet(int index, Object o){
 		if (index < 0 || index >= argsSize){
-			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize");
+			throw new IndexOutOfBoundsException("index < 0 || index >= argsSize, index: "+index);
 		}
 		
 		switch (index){
@@ -338,6 +401,11 @@ public abstract class Pack {
 		case 2: arg2 = o; break;
 		case 3: arg3 = o; break;
 		case 4: arg4 = o; break;
+		case 5: arg5 = o; break;
+		case 6: arg6 = o; break;
+		case 7: arg7 = o; break;
+		case 8: arg8 = o; break;
+		case 9: arg9 = o; break;
 		default: 
 			args.set(index - MAX_ARG_CACHE_NUM, o);
 			break;
@@ -346,9 +414,5 @@ public abstract class Pack {
 	
 	protected boolean argsIsEmpty(){
 		return argsSize == 0;
-	}
-	
-	protected int argsSize(){
-		return argsSize;
 	}
 }

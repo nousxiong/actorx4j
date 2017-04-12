@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="actorx4j" default="build" basedir=".">
+	<property name="src" value="src"/>
+	<property name="dest" value="dist/classes" />
+	<property name="dist" value="dist/lib" />
+	<property name="dist_jar" value="${dist}/actorx.jar" />
+
+	<target name="clean">
+		<delete file="${dist_jar}" />
+		<delete dir="${dest}" />
+		<delete dir="${dist}" />
+	</target>
+	
+	<target name="init" depends="clean">
+		<mkdir dir="${dest}" />
+		<mkdir dir="${dist}" />
+		<path id="classpath">
+			<pathelement location="${classpath}"/>
+			<fileset dir="lib">
+				<include name="**/*.jar"/>
+			</fileset>
+		</path>
+	</target>
+	
+	<target name="complie" depends="init">
+		<javac srcdir="${src}" destdir="${dest}" includeantruntime="on">
+			<compilerarg line="-encoding UTF-8 "/>
+			<classpath refid="classpath"/>
+		</javac>
+	</target>
+	
+	<target name="build" depends="complie">
+		<jar destfile="${dist_jar}" basedir="${dest}" >
+			<zipfileset dir="dist" prefix="META-INF">
+				<include name="suspendables"/>
+			</zipfileset>
+		</jar>
+		<copy file="${dist_jar}" todir="dist"/>
+		<antcall target="clean"/>
+	</target>
+</project>

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx;
+package actorx.util;
 
 import java.nio.charset.StandardCharsets;
 
@@ -51,6 +51,22 @@ public class Atom {
 		byte[] bytes = getResultBuffer();
 		System.arraycopy(buffer, pos, bytes, 0, 20 - pos);
 		return new String(bytes, 0, 20 - pos, StandardCharsets.US_ASCII);
+	}
+	
+	/**
+	 * 比较两个atom值是否相等
+	 * @param lhs
+	 * @param rhs
+	 * @return
+	 */
+	public static boolean equals(String lhs, String rhs){
+		if (lhs == null && rhs == null){
+			return true;
+		}else if (lhs == null || rhs == null){
+			return false;
+		}
+		
+		return to(lhs) == to(rhs);
 	}
 	
 	/**

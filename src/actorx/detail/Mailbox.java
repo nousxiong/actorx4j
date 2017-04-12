@@ -14,8 +14,8 @@ import cque.SingleObjectPool;
 import actorx.ActorId;
 import actorx.IRecvFilter;
 import actorx.Message;
-import actorx.AtomCode;
 import actorx.util.ContainerUtils;
+import actorx.util.StringUtils;
 
 /**
  * @author Xiong
@@ -72,8 +72,10 @@ public class Mailbox {
 		boolean found = false;
 		if (!typesEmpty){
 			String msgType = msg.getType();
-			for (String type : matchedTypes){
-				if (AtomCode.equals(type, msgType)){
+//			for (String type : matchedTypes){
+			for (int i=0, size=matchedTypes.size(); i<size; ++i){
+				String type = matchedTypes.get(i);
+				if (StringUtils.equals(type, msgType)){
 					found = true;
 					break;
 				}
@@ -85,7 +87,9 @@ public class Mailbox {
 			ActorId msgSender = msg.getSender();
 			boolean matchedActor = false;
 			boolean hasTypes = false;
-			for (Object obj : matchedActors){
+//			for (Object obj : matchedActors){
+			for (int i=0, size=matchedActors.size(); i<size; ++i){
+				Object obj = matchedActors.get(i);
 				if (obj instanceof ActorId){
 					if (matchedActor && !hasTypes){
 						found = true;
@@ -98,7 +102,7 @@ public class Mailbox {
 					hasTypes = true;
 					if (matchedActor){
 						String type = (String) obj;
-						if (AtomCode.compare(type, msgType) == 0){
+						if (StringUtils.equals(type, msgType)){
 							found = true;
 							break;
 						}
@@ -273,12 +277,14 @@ public class Mailbox {
 		}
 
 		Map<ActorId, SenderMailList> senderMails = isFiltered ? getFilteredSenderMails() : getSenderMails();
-		if (!actorsEmpty && !senderMails.isEmpty()){
+		if (!actorsEmpty && !ContainerUtils.isEmpty(senderMails)){
 			List<String> senderMatchedTypes = getSenderMatchedTypes();
 			
 			// 从senderMails中查找并移除指定actor和类型的消息
 			ActorId matchedActor = null;
-			for (Object obj : matchedActors){
+//			for (Object obj : matchedActors){
+			for (int i=0, size=matchedActors.size(); i<size; ++i){
+				Object obj = matchedActors.get(i);
 				if (obj instanceof ActorId){
 					if (matchedActor != null){
 						IMail mail = 
@@ -315,14 +321,16 @@ public class Mailbox {
 		Message prevMsg = msg;
 		
 		// 回调过滤器
-		for (IRecvFilter recvFilter : recvFilterSet){
-			Message filteredMsg = recvFilter.filterRecv(fromAid, type, prevMsg, msg);
-			if (filteredMsg != prevMsg && prevMsg != null && prevMsg != msg){
-				prevMsg.release();
-			}
-			prevMsg = filteredMsg;
-			if (prevMsg != null){
-				prevMsg.resetRead();
+		if (!ContainerUtils.isEmpty(recvFilterSet)){
+			for (IRecvFilter recvFilter : recvFilterSet){
+				Message filteredMsg = recvFilter.filterRecv(fromAid, type, prevMsg, msg);
+				if (filteredMsg != prevMsg && prevMsg != null && prevMsg != msg){
+					prevMsg.release();
+				}
+				prevMsg = filteredMsg;
+				if (prevMsg != null){
+					prevMsg.resetRead();
+				}
 			}
 		}
 
@@ -500,8 +508,10 @@ public class Mailbox {
 		IMail root = typeList;
 		IMail itr = root;
 		do{
-			for (String type : matchedTypes){
-				if (AtomCode.equals(itr.getType(), type)){
+//			for (String type : matchedTypes){
+			for (int i=0, size=matchedTypes.size(); i<size; ++i){
+				String type = matchedTypes.get(i);
+				if (StringUtils.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					
@@ -525,8 +535,10 @@ public class Mailbox {
 		IMail root = filteredTypeList;
 		IMail itr = root;
 		do{
-			for (String type : matchedTypes){
-				if (AtomCode.equals(itr.getType(), type)){
+//			for (String type : matchedTypes){
+			for (int i=0, size=matchedTypes.size(); i<size; ++i){
+				String type = matchedTypes.get(i);
+				if (StringUtils.equals(itr.getType(), type)){
 					filteredTotalList = removeTotalMail(filteredTotalList, itr);
 					filteredTypeList = removeTypeMail(filteredTypeList, itr, itr);
 					
@@ -578,7 +590,7 @@ public class Mailbox {
 		
 		IMail itr = root;
 		do{
-			if (AtomCode.equals(itr.getType(), type)){
+			if (StringUtils.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getTypeNext();

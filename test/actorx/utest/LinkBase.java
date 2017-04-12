@@ -1,7 +1,7 @@
 /**
  * 
  */
-package actorx.test;
+package actorx.utest;
 
 import static org.junit.Assert.*;
 
@@ -10,14 +10,17 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
 import actorx.ExitType;
 import actorx.AtomCode;
+import actorx.IFiberActorHandler;
 import actorx.IThreadActorHandler;
-import actorx.Packet;
+import actorx.Message;
 
 /**
  * @author Xiong
@@ -43,30 +46,42 @@ public class LinkBase {
 		
 		Actor ax2 = axs.spawn();
 		baseAx.link(ax2.getActorId());
-		Packet pkt = baseAx.recvPacket(AtomCode.LINK);
-		assertTrue(pkt != null);
-		assertTrue(AtomCode.equals(pkt.getType(), AtomCode.LINK));
+		Message cmsg = baseAx.recv(AtomCode.LINK);
+		assertTrue(cmsg != null);
+		assertTrue(AtomCode.equals(cmsg.getType(), AtomCode.LINK));
 		
 		Set<ActorId> quiters = new HashSet<ActorId>();
 		for (int i=0; i<100; ++i){
 			final int index = i;
-			ActorId aid = axs.spawn(new IThreadActorHandler() {
-				@Override
-				public void run(Actor self) throws Exception {
-					if (index % 7 == 0){
-						Thread.sleep(10);
+			ActorId aid = null;
+			if (i % 2 == 0){
+				aid = axs.spawn(new IThreadActorHandler() {
+					@Override
+					public void run(Actor self) throws Exception {
+						if (index % 7 == 0){
+							Thread.sleep(10);
+						}
 					}
-				}
-			});
+				});
+			}else{
+				aid = axs.spawn(new IFiberActorHandler() {
+					@Override
+					public void run(Actor self) throws SuspendExecution, Exception {
+						if (index % 7 == 0){
+							Strand.sleep(10);
+						}
+					}
+				});
+			}
 			baseAx.monitor(aid);
 			quiters.add(aid);
 		}
 		
 		for (int i=0, size=quiters.size(); i<size; ++i){
-			pkt = baseAx.recvPacket(pkt, AtomCode.MONITOR, AtomCode.EXIT);
-			String type = pkt.getType();
+			Message msg = baseAx.recv(cmsg, AtomCode.MONITOR, AtomCode.EXIT);
+			String type = msg.getType();
 			if (AtomCode.equals(type, AtomCode.EXIT)){
-				axExit = pkt.getRaw();
+				axExit = msg.getRaw();
 				if (axExit.getExitType() == ExitType.NORMAL){
 					--i;
 				}

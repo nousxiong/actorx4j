@@ -12,6 +12,7 @@ public class AtomCode {
 	public static final String NULLTYPE = "NULLTYPE";
 	public static final String LINK = "LINK";
 	public static final String MONITOR = "MONITOR";
+	public static final String BATCHMSG = "BATCHMSG";
 	
 	public static final String OPEN = "OPEN";
 	public static final String ACCEPT_ERR = "ACCEPT_ERR";

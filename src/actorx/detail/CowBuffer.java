@@ -5,14 +5,13 @@ package actorx.detail;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import actorx.CowBufferPool;
-import cque.AbstractNode;
+import actorx.util.CowBufferPool;
 
 /**
  * @author Xiong
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
-public class CowBuffer extends AbstractNode {
+public class CowBuffer extends cque.AbstractNode {
 	private byte[] buffer;
 	private int size;
 	private AtomicInteger refCount = new AtomicInteger(0);
@@ -107,20 +106,31 @@ public class CowBuffer extends AbstractNode {
 		return ref;
 	}
 	
-	private static void copy(byte[] src, CowBuffer dest, int len){
+	/**
+	 * 拷贝数据到cowBuffer上
+	 * @param src
+	 * @param dest
+	 * @param srcOff
+	 * @param len
+	 */
+	public static void copy(byte[] src, CowBuffer dest, int srcOff, int len){
 		if (len > 0){
-			System.arraycopy(src, 0, dest.buffer, 0, len);
+			System.arraycopy(src, srcOff, dest.buffer, 0, len);
 		}
 		dest.size = len;
 	}
+	
+	private static void copy(byte[] src, CowBuffer dest, int len){
+		copy(src, dest, 0, len);
+	}
 
 	@Override
-	protected void init(){
+	protected void initNode(){
 		this.incrRef();
 	}
 
 	@Override
-	protected void reset(){
+	protected void resetNode(){
 		size = 0;
 	}
 }

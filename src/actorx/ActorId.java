@@ -8,15 +8,17 @@ package actorx;
  */
 public class ActorId extends actorx.adl.ActorId {
 	// 空ActorId
-	public static final ActorId NULLAID = new ActorId(0, 0, 0, 0);
+	public static final ActorId NULLAID = new ActorId(0, 0, 0);
 	// null ActorId
 	public static final ActorId NULL = null;
 	
-	public ActorId(long axid, long timestamp, long id, long sid){
+	public ActorId(){
+	}
+	
+	public ActorId(long axid, long timestamp, long id){
 		this.axid = axid;
 		this.timestamp = timestamp;
 		this.id = id;
-		this.sid = sid;
 	}
 	
 	@Override
@@ -33,8 +35,7 @@ public class ActorId extends actorx.adl.ActorId {
 		return 
 			this.getAxid() == rhs.getAxid() && 
 			this.getTimestamp() == rhs.getTimestamp() && 
-			this.getId() == rhs.getId() && 
-			this.getSid() == rhs.getSid();
+			this.getId() == rhs.getId();
 	}
 	
 	/**
@@ -56,7 +57,6 @@ public class ActorId extends actorx.adl.ActorId {
 		result = 37 * result + (int) (axid ^ (axid >>> 32));
 		result = 37 * result + (int) (timestamp ^ (timestamp >>> 32));
 		result = 37 * result + (int) (id ^ (id >>> 32));
-		result = 37 * result + (int) (sid ^ (sid >>> 32));
 		return result;
 	}
 	
@@ -66,8 +66,7 @@ public class ActorId extends actorx.adl.ActorId {
 		sb.append("Aid<");
 		sb.append(axid).append('.');
 		sb.append(timestamp).append('.');
-		sb.append(id).append('.');
-		sb.append(sid).append(">");
+		sb.append(id).append(">");
 		return sb.toString();
 	}
 	
@@ -101,12 +100,6 @@ public class ActorId extends actorx.adl.ActorId {
 		if (lhs.id < rhs.id){
 			return -1;
 		}else if (lhs.id > rhs.id){
-			return 1;
-		}
-		
-		if (lhs.sid < rhs.sid){
-			return -1;
-		}else if (lhs.sid > rhs.sid){
 			return 1;
 		}
 		
