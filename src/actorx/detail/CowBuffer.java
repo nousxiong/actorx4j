@@ -5,13 +5,14 @@ package actorx.detail;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cque.AbstractNode;
 import actorx.util.CowBufferPool;
 
 /**
  * @author Xiong
  * 写时拷贝buffer，写时使用引用计数来判断是否有共享需要拷贝
  */
-public class CowBuffer extends cque.AbstractNode {
+public class CowBuffer extends AbstractNode {
 	private byte[] buffer;
 	private int size;
 	private AtomicInteger refCount = new AtomicInteger(0);

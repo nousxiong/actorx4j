@@ -5,13 +5,14 @@ package actorx.detail;
 
 import java.util.List;
 
+import cque.AbstractNode;
 import actorx.util.StringUtils;
 
 /**
  * @author Xiong
  * 发送者邮件列表
  */
-public class SenderMailList extends cque.AbstractNode {
+public class SenderMailList extends AbstractNode {
 	private IMail totalList;
 	private IMail typeList;
 	
