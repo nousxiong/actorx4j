@@ -32,7 +32,7 @@ https://github.com/lordoffox/adata
 https://github.com/puniverse/quasar
 
 
-Example
+Example (Others plz see test/actorx/utest/*.java)
 --------
 
 ```java
