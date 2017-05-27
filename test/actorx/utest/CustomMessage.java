@@ -9,12 +9,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
 import actorx.ActorSystem;
-import actorx.AtomCode;
 import actorx.ExitType;
 import actorx.IFiberActorHandler;
 import actorx.IThreadActorHandler;
@@ -22,12 +20,34 @@ import actorx.LinkType;
 import actorx.Message;
 import actorx.Pattern;
 import actorx.util.StringUtils;
+import co.paralleluniverse.fibers.SuspendExecution;
+import cque.util.PoolGuard;
 
 /**
  * @author Xiong
  *
  */
-public class ActorBase {
+public class CustomMessage {
+	
+	static class Hello extends Message {
+		private String tag;
+		public static final String TYPE = "HELLO";
+		
+		public Hello(String tag){
+			super.setType(TYPE);
+			this.tag = tag;
+		}
+
+		public String getTag() {
+			return tag;
+		}
+	}
+	
+	static class End extends Hello {
+		public End() {
+			super("end");
+		}
+	}
 
 	@Test
 	public void test(){
@@ -48,16 +68,23 @@ public class ActorBase {
 				
 				boolean goon = true;
 				while (goon){
-					Message msg = self.recv(cmsg, patt);
-					if (msg == null){
-						// 超时
-						continue;
-					}
-					
-					String str = msg.getString();
-					if (AtomCode.equals("end", str)){
-						System.out.println("Recv<"+str+">");
-						goon = false;
+					try(PoolGuard guard = self.precv(patt)){
+						Message msg = guard.get();
+						if (msg == null){
+							// 超时
+							continue;
+						}
+						
+						if (msg instanceof End){
+							End end = (End) msg;
+							System.out.println("Recv<"+end.getTag()+">");
+							goon = false;
+						}else if (msg instanceof Hello){
+							Hello hello = (Hello) msg;
+							assertTrue(StringUtils.equals("Hello World!", hello.getTag()));
+						}
+					}catch (Exception e){
+						e.printStackTrace();
 					}
 				}
 				self.send(baseAid, "OK", "Bye!");
@@ -71,9 +98,9 @@ public class ActorBase {
 		
 		baseAx.send(aid, "INIT");
 		for (int i=0; i<100; ++i){
-			baseAx.send(aid, "HELLO", "Hello World!");
+			baseAx.csend(aid, new Hello("Hello World!"));
 		}
-		baseAx.send(aid, "HELLO", "end");
+		baseAx.csend(aid, new End());
 		
 		Message cmsg = baseAx.recv("OK");
 		assertTrue(ActorId.equals(cmsg.getSender(), aid));
@@ -106,16 +133,23 @@ public class ActorBase {
 				
 				boolean goon = true;
 				while (goon){
-					Message msg = self.recv(cmsg, patt);
-					if (msg == null){
-						// 超时
-						continue;
-					}
-
-					String str = msg.getString();
-					if (AtomCode.equals("end", str)){
-						System.out.println("Recv<"+str+">");
-						goon = false;
+					try(PoolGuard guard = self.precv(patt)){
+						Message msg = guard.get();
+						if (msg == null){
+							// 超时
+							continue;
+						}
+						
+						if (msg instanceof End){
+							End end = (End) msg;
+							System.out.println("Recv<"+end.getTag()+">");
+							goon = false;
+						}else if (msg instanceof Hello){
+							Hello hello = (Hello) msg;
+							assertTrue(StringUtils.equals("Hello World!", hello.getTag()));
+						}
+					}catch (Exception e){
+						e.printStackTrace();
 					}
 				}
 				self.send(baseAid, "OK", "Bye!");
@@ -129,9 +163,9 @@ public class ActorBase {
 		
 		baseAx.send(aid, "INIT");
 		for (int i=0; i<100; ++i){
-			baseAx.send(aid, "HELLO", "Hello World!");
+			baseAx.csend(aid, new Hello("Hello World!"));
 		}
-		baseAx.send(aid, "HELLO", "end");
+		baseAx.csend(aid, new End());
 		
 		Message cmsg = baseAx.recv("OK");
 		assertTrue(ActorId.equals(cmsg.getSender(), aid));

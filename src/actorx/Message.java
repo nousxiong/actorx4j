@@ -3,9 +3,11 @@
  */
 package actorx;
 
+import actorx.adl.IAdlAdapter;
 import actorx.detail.CowBuffer;
 import actorx.detail.IMail;
 import actorx.detail.AbstractMessage;
+import actorx.util.AdataUtils;
 import actorx.util.Atom;
 import actorx.util.CowBufferPool;
 import actorx.util.MessagePool;
@@ -15,7 +17,7 @@ import adata.Stream;
 /**
  * @author Xiong
  */
-public class Message extends AbstractMessage implements /*INode, */IMail {
+public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAdapter {
 	// null消息
 	public static final Message NULL = null;
 	
@@ -53,7 +55,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 //			int argsLen = src.argsLength();
 //			int length = src.isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
 //			src.reserve(argsLen + length);
-			src.writeArgs(getStream());
+			src.writeArgs(AdataUtils.getStream());
 			
 //			int length = src.argsLength();
 //			int metaLen = src.metaLength(length);
@@ -113,6 +115,14 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		}
 		this.type = type;
 	}
+	
+	public void resetRead(){
+		readIndex = 0;
+		if (writeIndex > 0){
+			// 说明曾经序列化过，可能某些arg已经null，所以需要将readPos重置到0，重新走序列化
+			readPos = 0;
+		}
+	}
 
 	///------------------------------------------------------------------------
 	/// 以下是put api
@@ -131,28 +141,37 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 	/// 以下是get api
 	///------------------------------------------------------------------------
 	/**
-	 * 获取指定类型的参数
+	 * 获取指定类型的、直接从adl生成的参数
 	 * @return
 	 */
-	public <T extends Base> T get(T t){
+	public <T extends Base> T getAdl(T t){
+		return super.getAdl(cowBuffer, t);
+	}
+	
+	/**
+	 * 获取指定类型并可能使用Class来创建新实例的、直接从adl生成的参数
+	 * @param c
+	 * @return
+	 */
+	public <T extends Base> T getAdl(Class<T> c){
+		return super.getAdl(cowBuffer, c);
+	}
+	
+	/**
+	 * 获取指定类型的、从{@link IAdlAdapter}继承的参数
+	 * @return
+	 */
+	public <T extends IAdlAdapter> T get(T t){
 		return super.get(cowBuffer, t);
 	}
 	
 	/**
-	 * 获取指定类型并可能使用Class来创建新实例的参数
+	 * 获取指定类型并可能使用Class来创建新实例的、从{@link IAdlAdapter}继承的参数
 	 * @param c
 	 * @return
 	 */
-	public <T extends Base> T get(Class<T> c){
+	public <T extends IAdlAdapter> T get(Class<T> c){
 		return super.get(cowBuffer, c);
-	}
-	
-	public Message getMsg(Message msg){
-		return super.getMsg(cowBuffer, msg);
-	}
-	
-	public Message getMsg(){
-		return super.getMsg(cowBuffer);
 	}
 	
 	public byte getByte(){
@@ -237,7 +256,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 //		int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
 //		reserve(argsLen + length);
 		// 将能序列化的对象序列化
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		writeArgs(stream);
 		writeMeta(stream);
 		
@@ -251,6 +270,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		return buffer;
 	}
 	
+	@Override
 	public void read(Stream stream){
 		clear();
 		
@@ -283,6 +303,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		argsSize = stream.readInt32();
 	}
 	
+	@Override
 	public void write(Stream stream){
 		if (argsIsEmpty()){
 			return;
@@ -339,6 +360,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 	 * fixLength(4) + argsLength(*) + sender(*)+type(*)+argsSize(*)
 	 * @return
 	 */
+	@Override
 	public int sizeOf(){
 		return Stream.fixSizeOfInt32() + argsLength() + metaLength();
 	}
@@ -353,7 +375,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 //			int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
 //			reserve(argsLen + length);
 			// 将能序列化的对象序列化
-			writeArgs(getStream());
+			writeArgs(AdataUtils.getStream());
 		}
 	}
 	
@@ -390,8 +412,8 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 			if (arg != null){
 				if (arg instanceof Base){
 					length += ((Base) arg).sizeOf();
-				}else if (arg instanceof Message){
-					length += ((Message) arg).sizeOf();
+				}else if (arg instanceof IAdlAdapter){
+					length += ((IAdlAdapter) arg).sizeOf();
 				}else if (arg instanceof Byte){
 					length += Stream.sizeOfInt8((byte) arg);
 				}else if (arg instanceof Boolean){
@@ -423,7 +445,7 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 			return;
 		}
 		
-//		Stream stream = getStream();
+//		Stream stream = AdataUtils.getStream();
 		
 		stream.clearWrite();
 		stream.setWriteBuffer(cowBuffer.getBuffer());
@@ -504,9 +526,9 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		if (arg instanceof Base){
 			Base o = (Base) arg;
 			o.write(stream);
-		}else if (arg instanceof Message){
-			Message msg = (Message) arg;
-			msg.write(stream);
+		}else if (arg instanceof IAdlAdapter){
+			IAdlAdapter adat = (IAdlAdapter) arg;
+			adat.write(stream);
 		}else if (arg instanceof Byte){
 			Byte o = (Byte) arg;
 			stream.writeInt8(o);
@@ -538,9 +560,22 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		return isAdata;
 	}
 	
-	/** 以下继承自AbstractSyncNode */
+	// 用户自定义消息可以实现下面两个方法
+	protected void initMsg(){
+	}
+	
+	protected void resetMsg(){
+	}
+	
+	/** 以下继承自AbstractNode */
 	@Override
-	protected void resetNode(){
+	protected final void initNode(){
+		initMsg();
+	}
+	
+	@Override
+	protected final void resetNode(){
+		resetMsg();
 		super.clear();
 		writeIndex = 0;
 		
@@ -558,10 +593,6 @@ public class Message extends AbstractMessage implements /*INode, */IMail {
 		senderTypeSameNext = null;
 		senderTypeSamePrev = null;
 	}
-	
-//	/** 以下实现INode接口 */
-//	private INode next;
-//	private IRecycler recycler;
 
 	@Override
 	public void release(){

@@ -6,7 +6,7 @@ package actorx.detail;
 import java.util.List;
 
 import cque.AbstractNode;
-import actorx.util.StringUtils;
+import actorx.AtomCode;
 
 /**
  * @author Xiong
@@ -91,7 +91,7 @@ public class SenderMailList extends AbstractNode {
 //			for (String type : matchedTypes){
 			for (int i=0, size=matchedTypes.size(); i<size; ++i){
 				String type = matchedTypes.get(i);
-				if (StringUtils.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					return itr;
@@ -242,7 +242,7 @@ public class SenderMailList extends AbstractNode {
 		
 		IMail itr = root;
 		do{
-			if (StringUtils.equals(itr.getType(), type)){
+			if (AtomCode.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getSenderTypeNext();

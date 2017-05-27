@@ -23,7 +23,7 @@ import actorx.util.ExceptionUtils;
 import cque.AbstractNode;
 import cque.IPooledObject;
 import cque.IRecycler;
-import cque.IntrusiveSyncLinkedQueue;
+import cque.IntrusiveSuspendedQueue;
 import cque.NodeStack;
 import cque.util.PoolGuard;
 
@@ -39,10 +39,11 @@ public class Actor extends AbstractNode implements IRecycler {
 	private FiberScheduler fibSche;
 	private Executor executor;
 	/**自己退出时需要发送EXIT消息的列表*/
-	private Set<ActorId> linkList;
+	private Set<ActorId> linkList; // 自己主动链接别人
+	private Set<ActorId> linkedList; // 自己被别人链接
 	/**消息队列*/
 //	private IntrusiveMpscQueue<Message> msgQue = new IntrusiveMpscQueue<Message>(new ReentrantLock());
-	private IntrusiveSyncLinkedQueue<Message> msgQue = new IntrusiveSyncLinkedQueue<Message>(new StrandSynchronizer());
+	private IntrusiveSuspendedQueue<Message> msgQue = new IntrusiveSuspendedQueue<Message>(new StrandSynchronizer());
 //	private SingleConsumerArrayObjectQueue<Message> msgQue = new SingleConsumerArrayObjectQueue<Message>(100000 * 10);
 	/**池守卫缓存*/
 	private PoolGuard poolGuardCache;
@@ -179,12 +180,6 @@ public class Actor extends AbstractNode implements IRecycler {
 		sendMessage(toAid, selfAid, type, msg);
 	}
 	
-	/**
-	 * 发送消息
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 */
 	@Suspendable
 	public <A> void send(ActorId toAid, String type, A arg){
 		if (isExited()){
@@ -199,13 +194,6 @@ public class Actor extends AbstractNode implements IRecycler {
 		sendMessage(toAid, selfAid, type, msg);
 	}
 	
-	/**
-	 * 发送消息
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 * @param arg1
-	 */
 	@Suspendable
 	public <A, A1> void send(ActorId toAid, String type, A arg, A1 arg1){
 		if (isExited()){
@@ -224,14 +212,6 @@ public class Actor extends AbstractNode implements IRecycler {
 		sendMessage(toAid, selfAid, type, msg);
 	}
 	
-	/**
-	 * 发送消息
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 * @param arg1
-	 * @param arg2
-	 */
 	@Suspendable
 	public <A, A1, A2> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
 		if (isExited()){
@@ -254,31 +234,297 @@ public class Actor extends AbstractNode implements IRecycler {
 		sendMessage(toAid, selfAid, type, msg);
 	}
 	
-	/**
-	 * 发送消息
-	 * @param toAid
-	 * @param type
-	 * @param args 可以为null
-	 */
 	@Suspendable
-	public void send(ActorId toAid, String type, Object... args){
+	public <A, A1, A2, A3> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3){
 		if (isExited()){
 			throw new IllegalStateException();
 		}
-		
-		Message msg = makeNewMessage();
-		if (args != null){
-			for (Object arg : args){
-				if (arg == null){
-					msg.release();
-					throw new NullPointerException();
-				}
-				msg.put(arg);
-			}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
 		}
 		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
 		sendMessage(toAid, selfAid, type, msg);
 	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7, A8> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		if (arg8 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		msg.put(arg8);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7, A8, A9> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8, A9 arg9){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		if (arg8 == null){
+			throw new NullPointerException();
+		}
+		if (arg9 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = makeNewMessage();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		msg.put(arg8);
+		msg.put(arg9);
+		sendMessage(toAid, selfAid, type, msg);
+	}
+	
+//	/**
+//	 * 发送消息
+//	 * @param toAid
+//	 * @param type
+//	 * @param args 可以为null
+//	 */
+//	@Suspendable
+//	public void send(ActorId toAid, String type, Object... args){
+//		if (isExited()){
+//			throw new IllegalStateException();
+//		}
+//		
+//		Message msg = makeNewMessage();
+//		if (args != null){
+//			for (Object arg : args){
+//				if (arg == null){
+//					msg.release();
+//					throw new NullPointerException();
+//				}
+//				msg.put(arg);
+//			}
+//		}
+//		
+//		sendMessage(toAid, selfAid, type, msg);
+//	}
 	
 	/**
 	 * 发送消息
@@ -313,6 +559,54 @@ public class Actor extends AbstractNode implements IRecycler {
 		}
 		
 		Message msg = makeMessage(src);
+		sendMessage(toAid, msg.getSender(), msg.getType(), msg);
+	}
+
+	/**
+	 * 发送自定义消息（Custom Send)
+	 * @param toAid
+	 * @param msg
+	 */
+	@Suspendable
+	public <C extends Message> void csend(ActorId toAid, C msg){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		sendMessage(toAid, selfAid, msg.getType(), msg);
+	}
+
+	/**
+	 * 发送自定义消息（Custom Send)
+	 * @param toAid
+	 * @param type
+	 * @param msg
+	 */
+	@Suspendable
+	public <C extends Message> void csend(ActorId toAid, String type, C msg){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		
+		sendMessage(toAid, selfAid, type, msg);
+	}
+
+	@Suspendable
+	public <C extends Message> void crelay(ActorId toAid, C msg){
+		if (isExited()){
+			throw new IllegalStateException();
+		}
+		if (msg == null){
+			throw new NullPointerException();
+		}
+		
 		sendMessage(toAid, msg.getSender(), msg.getType(), msg);
 	}
 	
@@ -590,6 +884,16 @@ public class Actor extends AbstractNode implements IRecycler {
 	public ActorExit recvExit(){
 		return recvExit(Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
+
+	/**
+	 * 
+	 * @param sender
+	 * @return
+	 */
+	@Suspendable
+	public ActorExit recvExit(ActorId sender){
+		return recvExit(sender, Pattern.DEFAULT_TIMEOUT);
+	}
 	
 	/**
 	 * 接收{@link AtomCode#EXIT}消息
@@ -599,6 +903,11 @@ public class Actor extends AbstractNode implements IRecycler {
 	@Suspendable
 	public ActorExit recvExit(long timeout){
 		return recvExit(timeout, Pattern.DEFAULT_TIMEUNIT);
+	}
+
+	@Suspendable
+	public ActorExit recvExit(ActorId sender, long timeout){
+		return recvExit(sender, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
 	/**
@@ -611,6 +920,24 @@ public class Actor extends AbstractNode implements IRecycler {
 	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
 		Pattern pattern = getPattern();
 		pattern.match(AtomCode.EXIT);
+		try (PoolGuard guard = precv(pattern)){
+			Message msg = guard.get();
+			if (msg == null){
+				return null;
+			}
+			
+			ActorExit axExit = msg.get(ActorExit.class);
+			axExit.setSender(msg.getSender());
+			return axExit;
+		}catch (Throwable e){
+			return null;
+		}
+	}
+
+	@Suspendable
+	public ActorExit recvExit(ActorId sender, long timeout, TimeUnit timeUnit){
+		Pattern pattern = getPattern();
+		pattern.match(sender, AtomCode.EXIT);
 		try (PoolGuard guard = precv(pattern)){
 			Message msg = guard.get();
 			if (msg == null){
@@ -656,6 +983,12 @@ public class Actor extends AbstractNode implements IRecycler {
 			// 发送退出消息给所有链接的Actor
 			if (!ContainerUtils.isEmpty(linkList)){
 				for (ActorId aid : linkList){
+					send(aid, AtomCode.EXIT, axExit);
+				}
+			}
+			
+			if (!ContainerUtils.isEmpty(linkedList)){
+				for (ActorId aid : linkedList){
 					send(aid, AtomCode.EXIT, axExit);
 				}
 			}
@@ -745,6 +1078,11 @@ public class Actor extends AbstractNode implements IRecycler {
 		Set<ActorId> linkList = getLinkList();
 		linkList.add(target);
 	}
+	
+	void addLinked(ActorId target){
+		Set<ActorId> linkedList = getLinkedList();
+		linkedList.add(target);
+	}
 
 	static void runOnFiber(Actor actor, final IFiberActorHandler fiberHandler) throws SuspendExecution, InterruptedException{
 		ActorExit axExit = new ActorExit(ExitType.NORMAL, "no error");
@@ -775,6 +1113,29 @@ public class Actor extends AbstractNode implements IRecycler {
 	}
 
 	@Suspendable
+	public static ActorExit linkFromRemote(ActorSystem axSys, ActorId remoteAid, ActorId localAid){
+		Actor ax = axSys.getActor(localAid);
+		if (ax == null){
+			return new ActorExit(ExitType.ALREADY, "already exited");
+		}
+		
+//		String type = isMonitor ? AtomCode.MONITOR : AtomCode.LINK;
+		ReentrantLock linkLock = ax.linkLock;
+		linkLock.lock();
+		try{
+			// 获取锁后查一次此actor是否已经退出
+			if (ax.isExited()){
+				return new ActorExit(ExitType.ALREADY, "already exited");
+			}
+			
+			ax.addLinked(remoteAid);
+			return null;
+		}finally{
+			linkLock.unlock();
+		}
+	}
+
+	@Suspendable
 	private void link(ActorId aid, boolean isMonitor){
 		if (isExited()){
 			throw new IllegalStateException();
@@ -801,8 +1162,8 @@ public class Actor extends AbstractNode implements IRecycler {
 				// 将对方加入自己的link列表
 				addLink(aid);
 			}
-			// 将自己加入对方link列表
-			ax.addLink(selfAid);
+			// 将自己加入对方linked列表
+			ax.addLinked(selfAid);
 			// 给自己发送监视成功的消息
 			axs.send(aid, selfAid, type);
 		}finally{
@@ -894,33 +1255,44 @@ public class Actor extends AbstractNode implements IRecycler {
 //						tmsg = MessagePool.borrowObject();
 //					}
 //				}
-				
-				msg = Mailbox.filter(msg, recvFilters);
-				if (msg == null){
-					continue;
+			if (AtomCode.equals(AtomCode.EXIT, msg.getType())){
+				// 从link和linked列表移除
+				ActorId aid = msg.getSender();
+				if (!ContainerUtils.isEmpty(linkList)){
+					linkList.remove(aid);
 				}
 				
-				boolean typesEmpty = ContainerUtils.isEmpty(matchedTypes);
-				boolean actorsEmpty = ContainerUtils.isEmpty(matchedActors);
-				if (typesEmpty && actorsEmpty){
+				if (!ContainerUtils.isEmpty(linkedList)){
+					linkedList.remove(aid);
+				}
+			}
+			
+			msg = Mailbox.filter(msg, recvFilters);
+			if (msg == null){
+				continue;
+			}
+			
+			boolean typesEmpty = ContainerUtils.isEmpty(matchedTypes);
+			boolean actorsEmpty = ContainerUtils.isEmpty(matchedActors);
+			if (typesEmpty && actorsEmpty){
 //					break;
 //					if (batchMsg){
 //						endBatch(bmsg, argsSize - i - 1);
 //					}
-					return msg;
-				}
-				
-				boolean found = Mailbox.match(msg, matchedTypes, matchedActors);
-				if (found){
+				return msg;
+			}
+			
+			boolean found = Mailbox.match(msg, matchedTypes, matchedActors);
+			if (found){
 //					break;
 //					if (batchMsg){
 //						endBatch(bmsg, argsSize - i - 1);
 //					}
-					return msg;
-				}else{
-					Mailbox mailbox = getMailbox();
-					mailbox.add(msg);
-				}
+				return msg;
+			}else{
+				Mailbox mailbox = getMailbox();
+				mailbox.add(msg);
+			}
 //			}
 			
 			if (bt > 0){
@@ -982,6 +1354,13 @@ public class Actor extends AbstractNode implements IRecycler {
 			linkList = new HashSet<ActorId>();
 		}
 		return linkList;
+	}
+	
+	private Set<ActorId> getLinkedList(){
+		if (linkedList == null){
+			linkedList = new HashSet<ActorId>();
+		}
+		return linkedList;
 	}
 	
 	private Mailbox getMailbox(){

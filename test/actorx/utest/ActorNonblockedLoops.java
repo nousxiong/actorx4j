@@ -48,8 +48,8 @@ public class ActorNonblockedLoops {
 	}
 
 	private long handleTest(int idx){
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		
@@ -101,8 +101,8 @@ public class ActorNonblockedLoops {
 	}
 
 	private long handleTestFiber(int idx){
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		

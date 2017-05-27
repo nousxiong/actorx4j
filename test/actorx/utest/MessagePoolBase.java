@@ -30,8 +30,8 @@ public class MessagePoolBase {
 	@Test
 	public void test(){
 		MessagePool.init(1, count*concurr, count*concurr);
-		ActorSystem ctx = new ActorSystem("AXS");
-		ctx.startup(concurr);
+		ActorSystem ctx = new ActorSystem(concurr);
+		ctx.startup();
 		
 		Actor baseAx = ctx.spawn();
 		ActorId[] producers = new ActorId[concurr];
@@ -77,8 +77,8 @@ public class MessagePoolBase {
 	@Test
 	public void testFiber(){
 		MessagePool.init(1, count*concurr, count*concurr);
-		ActorSystem ctx = new ActorSystem("AXS");
-		ctx.startup(concurr);
+		ActorSystem ctx = new ActorSystem(concurr);
+		ctx.startup();
 		
 		Actor baseAx = ctx.spawn();
 		ActorId[] producers = new ActorId[concurr];

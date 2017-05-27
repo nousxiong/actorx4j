@@ -3,16 +3,18 @@
  */
 package actorx;
 
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import actorx.util.Atom;
+//import actorx.remote.LocalInfo;
+//import actorx.remote.RemoteInfo;
+//import actorx.remote.NetworkManager;
+//import actorx.util.Atom;
 import actorx.util.ConcurrentHashMap;
+//import actorx.util.StringUtils;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -23,75 +25,101 @@ import co.paralleluniverse.fibers.Suspendable;
  * @author Xiong
  */
 public class ActorSystem {
+	// ActorSystemConfig
+	private ActorSystemConfig ascfg;
 	// ActorSystem unique id
-	private long axid;
+	private long axid = 0;
 	/** 启动时间戳 */
 	private long timestamp;
 	/** actor全局表 */
 	private ConcurrentHashMap<ActorId, Actor> actorMap = new ConcurrentHashMap<ActorId, Actor>();
-	// ChannelGroup
-	private AsynchronousChannelGroup chanGroup;
 	/** Actor线程池 */
 	private ExecutorService actorThreadPool;
-	/** Channel线程池 */
-	private ExecutorService chanThreadPool;
-	private boolean outerThreadPool = false;
+	private boolean outerActorThreadPool = false;
+	/** 网络线程池 */
+	private ExecutorService networkThreadPool;
+	private boolean outerNetworkThreadPool = false;
 	/** ActorId分配基础 */
 	private AtomicLong[] actorIdBases;
 	private int currentIdBase = 0;
+	// 网络管理器
+//	private NetworkManager netMgr;
 	
+	
+	public ActorSystem(){
+		this(new ActorSystemConfig());
+	}
 	
 	public ActorSystem(String axid){
-		this.axid = Atom.to(axid);
+		this(new ActorSystemConfig().setAxid(axid));
+	}
+	
+	public ActorSystem(int threadNum){
+		this(new ActorSystemConfig().setThreadNum(threadNum));
+	}
+	
+	public ActorSystem(ActorSystemConfig ascfg){
+		this.ascfg = ascfg;
+		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
+		
+//		String axid = ascfg.getAxid();
+		int threadNum = ascfg.getThreadNum();
+		actorThreadPool = ascfg.getActorThreadPool();
+		if (actorThreadPool != null){
+			outerActorThreadPool = true;
+		}
+		networkThreadPool = ascfg.getNetworkThreadPool();
+		if (networkThreadPool != null){
+			outerNetworkThreadPool = true;
+		}
+		
+		if (actorThreadPool == null){
+			if (threadNum > 0){
+				actorThreadPool = Executors.newFixedThreadPool(threadNum);
+			}else{
+				actorThreadPool = Executors.newCachedThreadPool();
+			}
+		}
+
+//		if (!StringUtils.isEmpty(axid)){
+//			this.axid = Atom.to(axid);
+//			this.netMgr = new NetworkManager(
+//				this, 
+//				ascfg.getInternalPoolSize(), 
+//				ascfg.getInternalPoolInitSize(), 
+//				ascfg.getInternalPoolMaxSize()
+//			);
+//			if (networkThreadPool == null){
+//				networkThreadPool = actorThreadPool;
+//			}
+//		}
+		
 		this.timestamp = System.currentTimeMillis();
 	}
-	
+
+	@Suspendable
 	public void startup(){
-		startup(Executors.newCachedThreadPool());
-		outerThreadPool = false;
-	}
-	
-	public void startup(int threadNum){
-		startup(Executors.newFixedThreadPool(threadNum));
-		outerThreadPool = false;
-	}
-	
-	public void startup(ExecutorService threadPool){
-		outerThreadPool = true;
-		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
-		this.actorThreadPool = threadPool;
-		this.chanThreadPool = threadPool;
-		try{
-			this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
-		}catch (IOException e){
-			throw new RuntimeException(e);
-		}
-	}
-	
-	public void startup(ExecutorService actorThreadPool, ExecutorService chanThreadPool){
-		outerThreadPool = true;
-		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
-		this.actorThreadPool = actorThreadPool;
-		this.chanThreadPool = chanThreadPool;
-		try{
-			this.chanGroup = AsynchronousChannelGroup.withThreadPool(chanThreadPool);
-		}catch (IOException e){
-			throw new RuntimeException(e);
-		}
+//		if (netMgr != null){
+//			netMgr.start();
+//		}
 	}
 
 	@Suspendable
 	public void shutdown(){
-		chanGroup.shutdown();
-		if (!outerThreadPool && actorThreadPool != chanThreadPool){
+//		if (netMgr != null){
+//			netMgr.stop();
+//		}
+		
+		if (!outerNetworkThreadPool && networkThreadPool != null){
+			networkThreadPool.shutdown();
 			try{
-				chanGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+				networkThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 			}catch (InterruptedException e){
 			}
 		}
 		
-		actorThreadPool.shutdown();
-		if (!outerThreadPool){
+		if (!outerActorThreadPool && actorThreadPool != networkThreadPool){
+			actorThreadPool.shutdown();
 			try{
 				actorThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 			}catch (InterruptedException e){
@@ -104,6 +132,10 @@ public class ActorSystem {
 		}
 	}
 	
+	public ActorSystemConfig getConfig() {
+		return ascfg;
+	}
+
 	/**
 	 * 获取axid
 	 * @return
@@ -121,11 +153,12 @@ public class ActorSystem {
 	}
 	
 	/**
-	 * 获取ChannelGroup
+	 * 是否是本地actor
+	 * @param aid
 	 * @return
 	 */
-	public AsynchronousChannelGroup getChannelGroup(){
-		return chanGroup;
+	public boolean isLocalActor(ActorId aid){
+		return axid == aid.axid;
 	}
 	
 	/**
@@ -363,6 +396,31 @@ public class ActorSystem {
 	public ActorRef ref(ActorId refAid){
 		return new ActorRef(this, refAid);
 	}
+
+//	@Suspendable
+//	public void addRemote(String axid, RemoteInfo remoteInfo){
+//		if (remoteInfo == null){
+//			throw new NullPointerException();
+//		}
+//		
+////		remoteMap.put(Atom.to(axid), remoteInfo);
+//		netMgr.addRemote(Atom.to(axid), remoteInfo);
+//	}
+
+//	@Suspendable
+//	public boolean removeRemote(String axid){
+////		return remoteMap.remove(Atom.to(axid));
+//		return netMgr.removeRemote(Atom.to(axid));
+//	}
+	
+	/**
+	 * 监听本地
+	 * @param localInfo
+	 */
+//	@Suspendable
+//	public void listen(LocalInfo localInfo){
+//		netMgr.listen(localInfo);
+//	}
 	
 	/**
 	 * 发送一个自己构建的消息
@@ -408,13 +466,6 @@ public class ActorSystem {
 		}
 	}
 	
-	/**
-	 * 发送消息
-	 * @param fromAid
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 */
 	@Suspendable
 	public <A> void send(ActorId fromAid, ActorId toAid, String type, A arg){
 		if (arg == null){
@@ -431,14 +482,6 @@ public class ActorSystem {
 		}
 	}
 	
-	/**
-	 * 发送消息
-	 * @param fromAid
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 * @param arg1
-	 */
 	@Suspendable
 	public <A, A1> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1){
 		if (arg == null){
@@ -459,15 +502,6 @@ public class ActorSystem {
 		}
 	}
 	
-	/**
-	 * 发送消息
-	 * @param fromAid
-	 * @param toAid
-	 * @param type
-	 * @param arg
-	 * @param arg1
-	 * @param arg2
-	 */
 	@Suspendable
 	public <A, A1, A2> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
 		if (arg == null){
@@ -492,25 +526,26 @@ public class ActorSystem {
 		}
 	}
 	
-	/**
-	 * 发送消息
-	 * @param fromAid
-	 * @param toAid
-	 * @param type
-	 * @param args 可以为null
-	 */
 	@Suspendable
-	public void send(ActorId fromAid, ActorId toAid, String type, Object... args){
-		Message msg = Message.make();
-		if (args != null){
-			for (Object arg : args){
-				if (arg == null){
-					msg.release();
-					throw new NullPointerException();
-				}
-				msg.put(arg);
-			}
+	public <A, A1, A2, A3> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3){
+		if (arg == null){
+			throw new NullPointerException();
 		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
 		
 		msg.setSender(fromAid);
 		msg.setType(type);
@@ -518,6 +553,285 @@ public class ActorSystem {
 			msg.release();
 		}
 	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7, A8> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		if (arg8 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		msg.put(arg8);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+	@Suspendable
+	public <A, A1, A2, A3, A4, A5, A6, A7, A8, A9> void send(ActorId fromAid, ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8, A9 arg9){
+		if (arg == null){
+			throw new NullPointerException();
+		}
+		if (arg1 == null){
+			throw new NullPointerException();
+		}
+		if (arg2 == null){
+			throw new NullPointerException();
+		}
+		if (arg3 == null){
+			throw new NullPointerException();
+		}
+		if (arg4 == null){
+			throw new NullPointerException();
+		}
+		if (arg5 == null){
+			throw new NullPointerException();
+		}
+		if (arg6 == null){
+			throw new NullPointerException();
+		}
+		if (arg7 == null){
+			throw new NullPointerException();
+		}
+		if (arg8 == null){
+			throw new NullPointerException();
+		}
+		if (arg9 == null){
+			throw new NullPointerException();
+		}
+		
+		Message msg = Message.make();
+		msg.put(arg);
+		msg.put(arg1);
+		msg.put(arg2);
+		msg.put(arg3);
+		msg.put(arg4);
+		msg.put(arg5);
+		msg.put(arg6);
+		msg.put(arg7);
+		msg.put(arg8);
+		msg.put(arg9);
+		
+		msg.setSender(fromAid);
+		msg.setType(type);
+		if (!Actor.sendMessage(this, toAid, msg)){
+			msg.release();
+		}
+	}
+	
+//	/**
+//	 * 发送消息
+//	 * @param fromAid
+//	 * @param toAid
+//	 * @param type
+//	 * @param args 可以为null
+//	 */
+//	@Suspendable
+//	public void send(ActorId fromAid, ActorId toAid, String type, Object... args){
+//		Message msg = Message.make();
+//		if (args != null){
+//			for (Object arg : args){
+//				if (arg == null){
+//					msg.release();
+//					throw new NullPointerException();
+//				}
+//				msg.put(arg);
+//			}
+//		}
+//		
+//		msg.setSender(fromAid);
+//		msg.setType(type);
+//		if (!Actor.sendMessage(this, toAid, msg)){
+//			msg.release();
+//		}
+//	}
 	
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用

@@ -98,8 +98,8 @@ public class DiyExecutor {
 		// Diy executor
 		ExecutorService executor = Executors.newCachedThreadPool();
 		
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		
@@ -155,8 +155,8 @@ public class DiyExecutor {
 		ExecutorService executor = Executors.newCachedThreadPool();
 		FiberScheduler fibSche = new FiberExecutorScheduler("AXSFIBSCHE", executor);
 		
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		

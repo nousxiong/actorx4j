@@ -7,19 +7,11 @@ package actorx;
  * @author Xiong
  * actorx的默认消息类型
  */
-public class AtomCode {
+public final class AtomCode {
 	public static final String EXIT = "EXIT";
 	public static final String NULLTYPE = "NULLTYPE";
 	public static final String LINK = "LINK";
 	public static final String MONITOR = "MONITOR";
-	public static final String BATCHMSG = "BATCHMSG";
-	
-	public static final String OPEN = "OPEN";
-	public static final String ACCEPT_ERR = "ACCEPT_ERR";
-	public static final String CONN_ERR = "CONN_ERR";
-	public static final String RECV = "RECV";
-	public static final String EXCEPT = "EXCEPT";
-	public static final String CLOSE = "CLOSE";
 	
 	/**
 	 * 比较2个Type

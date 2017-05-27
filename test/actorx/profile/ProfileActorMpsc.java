@@ -11,11 +11,11 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import actorx.Actor;
 import actorx.ActorId;
 import actorx.ActorSystem;
+import actorx.AtomCode;
 import actorx.IFiberActorHandler;
 import actorx.LinkType;
 import actorx.Message;
 import actorx.util.MessagePool;
-import actorx.util.StringUtils;
 
 /**
  * @author Xiong
@@ -26,7 +26,7 @@ public class ProfileActorMpsc {
 	private final int concurr = Runtime.getRuntime().availableProcessors() * 1;
 	private final int count = 100000;
 	private final int loopCount = 1000;
-	private final ActorSystem axs = new ActorSystem("AXS");
+	private final ActorSystem axs = new ActorSystem(concurr);
 	private Actor consumer;
 	private final List<ActorId> producers = new ArrayList<ActorId>(concurr);
 	private final Message cmsg = new Message();
@@ -34,7 +34,7 @@ public class ProfileActorMpsc {
 
 	void run(){
 		MessagePool.init(1, count * concurr, count * concurr);
-		axs.startup(concurr);
+		axs.startup();
 		
 		consumer = axs.spawn();
 		for (int i=0; i<concurr; ++i){
@@ -51,7 +51,7 @@ public class ProfileActorMpsc {
 					
 					while (true){
 						Message msg = self.recv(cmsg, "START", "END");
-						if (StringUtils.equals(msg.getType(), "END")){
+						if (AtomCode.equals(msg.getType(), "END")){
 							break;
 						}
 						

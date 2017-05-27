@@ -1,8 +1,10 @@
 actorx.Actor.link
 actorx.Actor.monitor
 actorx.Actor.send
+actorx.Actor.csend
 actorx.Actor.recv
 actorx.Actor.relay
+actorx.Actor.crelay
 actorx.Actor.recvExit
 actorx.Actor.quit
 actorx.Actor.sendMessage
@@ -34,9 +36,15 @@ actorx.util.ConcurrentHashMap.EntrySet.size
 actorx.util.ConcurrentHashMap.EntrySet.clear
 actorx.util.ConcurrentHashMap.writeObject
 actorx.ActorAddon.send
+actorx.ActorAddon.csend
 actorx.ActorRef.send
+actorx.ActorRef.csend
+actorx.ActorSystem.startup
 actorx.ActorSystem.shutdown
 actorx.ActorSystem.spawn
+actorx.ActorSystem.addRemote
+actorx.ActorSystem.removeRemote
+actorx.ActorSystem.listen
 actorx.ActorSystem.send
 actorx.ActorSystem.getActor
 actorx.ActorSystem.removeActor

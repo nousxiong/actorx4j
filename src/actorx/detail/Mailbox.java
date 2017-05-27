@@ -12,10 +12,10 @@ import java.util.Set;
 
 import cque.SingleObjectPool;
 import actorx.ActorId;
+import actorx.AtomCode;
 import actorx.IRecvFilter;
 import actorx.Message;
 import actorx.util.ContainerUtils;
-import actorx.util.StringUtils;
 
 /**
  * @author Xiong
@@ -75,7 +75,7 @@ public class Mailbox {
 //			for (String type : matchedTypes){
 			for (int i=0, size=matchedTypes.size(); i<size; ++i){
 				String type = matchedTypes.get(i);
-				if (StringUtils.equals(type, msgType)){
+				if (AtomCode.equals(type, msgType)){
 					found = true;
 					break;
 				}
@@ -102,7 +102,7 @@ public class Mailbox {
 					hasTypes = true;
 					if (matchedActor){
 						String type = (String) obj;
-						if (StringUtils.equals(type, msgType)){
+						if (AtomCode.equals(type, msgType)){
 							found = true;
 							break;
 						}
@@ -511,7 +511,7 @@ public class Mailbox {
 //			for (String type : matchedTypes){
 			for (int i=0, size=matchedTypes.size(); i<size; ++i){
 				String type = matchedTypes.get(i);
-				if (StringUtils.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					totalList = removeTotalMail(totalList, itr);
 					typeList = removeTypeMail(typeList, itr, itr);
 					
@@ -538,7 +538,7 @@ public class Mailbox {
 //			for (String type : matchedTypes){
 			for (int i=0, size=matchedTypes.size(); i<size; ++i){
 				String type = matchedTypes.get(i);
-				if (StringUtils.equals(itr.getType(), type)){
+				if (AtomCode.equals(itr.getType(), type)){
 					filteredTotalList = removeTotalMail(filteredTotalList, itr);
 					filteredTypeList = removeTypeMail(filteredTypeList, itr, itr);
 					
@@ -590,7 +590,7 @@ public class Mailbox {
 		
 		IMail itr = root;
 		do{
-			if (StringUtils.equals(itr.getType(), type)){
+			if (AtomCode.equals(itr.getType(), type)){
 				return itr;
 			}
 			itr = itr.getTypeNext();

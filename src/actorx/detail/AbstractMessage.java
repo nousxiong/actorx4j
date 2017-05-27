@@ -9,7 +9,8 @@ import java.util.List;
 import cque.AbstractNode;
 import actorx.ActorId;
 import actorx.AtomCode;
-import actorx.Message;
+import actorx.adl.IAdlAdapter;
+import actorx.util.AdataUtils;
 import actorx.util.ContainerUtils;
 import adata.Base;
 import adata.Stream;
@@ -26,7 +27,6 @@ public abstract class AbstractMessage extends AbstractNode {
 	// 当前未读过的参数的索引
 	protected int readIndex;
 	protected CowBuffer cowBuffer;
-	private static ThreadLocal<Stream> streamTLS = new ThreadLocal<Stream>();
 	
 	public ActorId getSender(){
 		return sender;
@@ -44,10 +44,6 @@ public abstract class AbstractMessage extends AbstractNode {
 		argsClear();
 	}
 	
-	public void resetRead(){
-		readIndex = 0;
-	}
-	
 	public <T> T getRaw(){
 		T t = getArg();
 		if (t == null){
@@ -61,22 +57,22 @@ public abstract class AbstractMessage extends AbstractNode {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected <T extends Base> T get(CowBuffer cowBuffer, T t){
+	protected <T extends Base> T getAdl(CowBuffer cowBuffer, T t){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		((Base) t).read(stream);
 		argsSet(readIndex, t);
 		endRead(stream);
 		return t;
 	}
-		
-	protected <T extends Base> T get(CowBuffer cowBuffer, Class<T> c){
+
+	protected <T extends Base> T getAdl(CowBuffer cowBuffer, Class<T> c){
 		T arg = getArg();
 		if (arg != null){
 			return arg;
@@ -90,7 +86,7 @@ public abstract class AbstractMessage extends AbstractNode {
 			throw new RuntimeException(e.getMessage());
 		}
 		
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		t.read(stream);
 		argsSet(readIndex, t);
@@ -98,36 +94,41 @@ public abstract class AbstractMessage extends AbstractNode {
 		return t;
 	}
 	
-	protected Message getMsg(CowBuffer cowBuffer, Message msg){
-		Message arg = getArg();
+	protected <T extends IAdlAdapter> T get(CowBuffer cowBuffer, T t){
+		T arg = getArg();
 		if (arg != null){
 			return arg;
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
-		msg.read(stream);
-		argsSet(readIndex, msg);
+		t.read(stream);
+		argsSet(readIndex, t);
 		endRead(stream);
-		return msg;
+		return t;
 	}
 	
-	protected Message getMsg(CowBuffer cowBuffer){
-		Message arg = getArg();
+	protected <T extends IAdlAdapter> T get(CowBuffer cowBuffer, Class<T> c){
+		T arg = getArg();
 		if (arg != null){
 			return arg;
 		}
 	
 		byte[] buffer = cowBuffer.getBuffer();
-		Message msg = new Message();
+		T t = null;
+		try{
+			t = c.newInstance();
+		}catch (Throwable e){
+			throw new RuntimeException(e.getMessage());
+		}
 		
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
-		msg.read(stream);
-		argsSet(readIndex, msg);
+		t.read(stream);
+		argsSet(readIndex, t);
 		endRead(stream);
-		return msg;
+		return t;
 	}
 	
 	protected byte getByte(CowBuffer cowBuffer){
@@ -137,7 +138,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		byte o = stream.readInt8();
 		argsSet(readIndex, o);
@@ -152,7 +153,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		byte o = stream.readInt8();
 		argsSet(readIndex, o);
@@ -167,7 +168,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		short o = stream.readInt16();
 		argsSet(readIndex, o);
@@ -182,7 +183,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		int o = stream.readInt32();
 		argsSet(readIndex, o);
@@ -197,7 +198,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		long o = stream.readInt64();
 		argsSet(readIndex, o);
@@ -212,7 +213,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		float o = stream.readFloat();
 		argsSet(readIndex, o);
@@ -227,7 +228,7 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		double o = stream.readDouble();
 		argsSet(readIndex, o);
@@ -242,25 +243,12 @@ public abstract class AbstractMessage extends AbstractNode {
 		}
 		
 		byte[] buffer = cowBuffer.getBuffer();
-		Stream stream = getStream();
+		Stream stream = AdataUtils.getStream();
 		beginRead(stream, buffer);
 		String o = stream.readString();
 		argsSet(readIndex, o);
 		endRead(stream);
 		return o;
-	}
-	
-	/**
-	 * 获取线程局部存储的adata Stream
-	 * @return
-	 */
-	protected static Stream getStream(){
-		Stream stream = streamTLS.get();
-		if (stream == null){
-			stream = new Stream();
-			streamTLS.set(stream);
-		}
-		return stream;
 	}
 	
 	@SuppressWarnings("unchecked")

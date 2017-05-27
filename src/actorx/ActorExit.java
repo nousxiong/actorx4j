@@ -3,11 +3,13 @@
  */
 package actorx;
 
+import actorx.adl.IAdlAdapter;
+
 /**
  * @author Xiong
  *
  */
-public class ActorExit extends actorx.adl.ActorExit {
+public class ActorExit extends actorx.adl.ActorExit implements IAdlAdapter {
 	
 	private ActorId sender;
 	

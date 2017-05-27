@@ -51,8 +51,8 @@ public class ActorLoops {
 	long handleTest(int idx){
 		MessagePool.init(1, count*concurr, count*concurr);
 		
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		
@@ -106,8 +106,8 @@ public class ActorLoops {
 	long handleTestFiber(int idx){
 //		System.out.println("Concurrent count: "+concurr);
 		
-		ActorSystem axs = new ActorSystem("AXS");
-		axs.startup(concurr);
+		ActorSystem axs = new ActorSystem(concurr);
+		axs.startup();
 
 		Actor consumer = axs.spawn();
 		

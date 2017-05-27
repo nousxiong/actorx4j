@@ -3,10 +3,12 @@
  */
 package actorx;
 
+import actorx.adl.IAdlAdapter;
+
 /**
  * @author Xiong
  */
-public class ActorId extends actorx.adl.ActorId {
+public class ActorId extends actorx.adl.ActorId implements IAdlAdapter {
 	// 空ActorId
 	public static final ActorId NULLAID = new ActorId(0, 0, 0);
 	// null ActorId
