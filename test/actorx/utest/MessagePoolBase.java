@@ -28,7 +28,7 @@ public class MessagePoolBase {
 	static final int count = 100000;
 	
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		MessagePool.init(1, count*concurr, count*concurr);
 		ActorSystem ctx = new ActorSystem(concurr);
 		ctx.startup();
@@ -75,7 +75,7 @@ public class MessagePoolBase {
 	}
 
 	@Test
-	public void testFiber(){
+	public void testFiber() throws InterruptedException{
 		MessagePool.init(1, count*concurr, count*concurr);
 		ActorSystem ctx = new ActorSystem(concurr);
 		ctx.startup();

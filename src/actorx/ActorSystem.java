@@ -9,12 +9,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import actorx.remote.LocalInfo;
+import actorx.remote.NetworkManager;
+import actorx.remote.RemoteInfo;
+import actorx.util.Atom;
 //import actorx.remote.LocalInfo;
 //import actorx.remote.RemoteInfo;
 //import actorx.remote.NetworkManager;
 //import actorx.util.Atom;
 import actorx.util.ConcurrentHashMap;
-//import actorx.util.StringUtils;
+import actorx.util.ServiceUtils;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -42,8 +46,13 @@ public class ActorSystem {
 	/** ActorId分配基础 */
 	private AtomicLong[] actorIdBases;
 	private int currentIdBase = 0;
+	// 自定义消息工厂map
+	private ConcurrentHashMap<String, ICustomMessageFactory> customMsgMap = 
+			new ConcurrentHashMap<String, ICustomMessageFactory>();
+	private java.util.concurrent.ConcurrentHashMap<String, ICustomMessageFactory> cmsgMap = 
+			new java.util.concurrent.ConcurrentHashMap<String, ICustomMessageFactory>();
 	// 网络管理器
-//	private NetworkManager netMgr;
+	private NetworkManager netMgr;
 	
 	
 	public ActorSystem(){
@@ -62,7 +71,7 @@ public class ActorSystem {
 		this.ascfg = ascfg;
 		this.actorIdBases = makeActorIdBases(Runtime.getRuntime().availableProcessors());
 		
-//		String axid = ascfg.getAxid();
+		long axid = ascfg.getAxid();
 		int threadNum = ascfg.getThreadNum();
 		actorThreadPool = ascfg.getActorThreadPool();
 		if (actorThreadPool != null){
@@ -80,35 +89,41 @@ public class ActorSystem {
 				actorThreadPool = Executors.newCachedThreadPool();
 			}
 		}
-
-//		if (!StringUtils.isEmpty(axid)){
-//			this.axid = Atom.to(axid);
-//			this.netMgr = new NetworkManager(
-//				this, 
-//				ascfg.getInternalPoolSize(), 
-//				ascfg.getInternalPoolInitSize(), 
-//				ascfg.getInternalPoolMaxSize()
-//			);
-//			if (networkThreadPool == null){
-//				networkThreadPool = actorThreadPool;
-//			}
+		
+		customMsgMap.putAll(ascfg.getCustomMessageList());
+		cmsgMap.putAll(ascfg.getCustomMessageList());
+//		for (Entry<String, ICustomMessageFactory> e : ascfg.getCustomMessageList().entrySet()){
+//			customMsgMap.put(e.getKey(), e.getValue());
 //		}
+
+		if (axid != 0){
+			this.axid = axid;
+			this.netMgr = new NetworkManager(
+				this, 
+				ascfg.getInternalPoolSize(), 
+				ascfg.getInternalPoolInitSize(), 
+				ascfg.getInternalPoolMaxSize()
+			);
+			if (networkThreadPool == null){
+				networkThreadPool = actorThreadPool;
+			}
+		}
 		
 		this.timestamp = System.currentTimeMillis();
 	}
 
 	@Suspendable
 	public void startup(){
-//		if (netMgr != null){
-//			netMgr.start();
-//		}
+		if (netMgr != null){
+			netMgr.start();
+		}
 	}
 
 	@Suspendable
 	public void shutdown(){
-//		if (netMgr != null){
-//			netMgr.stop();
-//		}
+		if (netMgr != null){
+			netMgr.stop();
+		}
 		
 		if (!outerNetworkThreadPool && networkThreadPool != null){
 			networkThreadPool.shutdown();
@@ -135,6 +150,14 @@ public class ActorSystem {
 	public ActorSystemConfig getConfig() {
 		return ascfg;
 	}
+	
+	public ConcurrentHashMap<String, ICustomMessageFactory> getCustomMessageMap(){
+		return customMsgMap;
+	}
+	
+	public java.util.concurrent.ConcurrentHashMap<String, ICustomMessageFactory> getCMsgMap(){
+		return cmsgMap;
+	}
 
 	/**
 	 * 获取axid
@@ -150,6 +173,14 @@ public class ActorSystem {
 	 */
 	public long getTimestamp(){
 		return timestamp;
+	}
+	
+	/**
+	 * 获取网络管理器
+	 * @return
+	 */
+	public NetworkManager getNetworkManager(){
+		return netMgr;
 	}
 	
 	/**
@@ -173,6 +204,16 @@ public class ActorSystem {
 		return actor;
 	}
 	
+	@Suspendable
+	public Actor spawn(String serviceName){
+		ActorId aid = ServiceUtils.makeServiceId(this, serviceName);
+		Actor actor = new Actor(this, aid);
+		if (actorMap.putIfAbsent(aid, actor) != null){
+			return null;
+		}
+		return actor;
+	}
+	
 	/**
 	 * 产生一个actor，自己调度
 	 * @param sire 父Actor
@@ -181,6 +222,11 @@ public class ActorSystem {
 	@Suspendable
 	public Actor spawn(Actor sire){
 		return spawn(sire, LinkType.NO_LINK);
+	}
+	
+	@Suspendable
+	public Actor spawn(Actor sire, String serviceName){
+		return spawn(sire, serviceName, LinkType.NO_LINK);
 	}
 	
 	/**
@@ -195,6 +241,16 @@ public class ActorSystem {
 		addLink(sire, actor, link);
 		return actor;
 	}
+
+	@Suspendable
+	public Actor spawn(Actor sire, String serviceName, LinkType link){
+		Actor actor = spawn(serviceName);
+		if (actor == null){
+			return null;
+		}
+		addLink(sire, actor, link);
+		return actor;
+	}
 	
 	/**
 	 * 产生一个线程actor，并且使用指定的Handler来放入线程池执行
@@ -206,6 +262,11 @@ public class ActorSystem {
 		return spawn(actorThreadPool, ah);
 	}
 	
+	@Suspendable
+	public ActorId spawn(String serviceName, IThreadActorHandler ah){
+		return spawn(actorThreadPool, serviceName, ah);
+	}
+	
 	/**
 	 * 产生一个纤程actor，并且使用指定的Handler来放入默认的调度器执行
 	 * @param ah 可运行单元
@@ -214,6 +275,11 @@ public class ActorSystem {
 	@Suspendable
 	public ActorId spawn(IFiberActorHandler ah){
 		return spawn(DefaultFiberScheduler.getInstance(), ah);
+	}
+
+	@Suspendable
+	public ActorId spawn(String serviceName, IFiberActorHandler ah){
+		return spawn(DefaultFiberScheduler.getInstance(), serviceName, ah);
 	}
 	
 	/**
@@ -229,6 +295,27 @@ public class ActorSystem {
 		}
 		
 		final Actor actor = makeActor(executor);
+		ActorId aid = actor.getActorId();
+		executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				Actor.runOnThread(actor, ah);
+			}
+		});
+		return aid;
+	}
+	
+	@Suspendable
+	public ActorId spawn(Executor executor, String serviceName, final IThreadActorHandler ah){
+		if (executor == null){
+			throw new NullPointerException();
+		}
+		
+		final Actor actor = makeActor(executor, serviceName);
+		if (actor == null){
+			return ActorId.NULL;
+		}
+
 		ActorId aid = actor.getActorId();
 		executor.execute(new Runnable() {
 			@Override
@@ -263,6 +350,29 @@ public class ActorSystem {
 		}.start();
 		return aid;
 	}
+
+	@Suspendable
+	public ActorId spawn(FiberScheduler fibSche, String serviceName, final IFiberActorHandler ah){
+		if (fibSche == null){
+			throw new NullPointerException();
+		}
+		
+		final Actor actor = makeActor(fibSche, serviceName);
+		if (actor == null){
+			return ActorId.NULL;
+		}
+		
+		ActorId aid = actor.getActorId();
+		new Fiber<Void>(fibSche) {
+			private static final long serialVersionUID = 2841359941298581576L;
+			@Override
+			protected Void run() throws SuspendExecution, InterruptedException {
+				Actor.runOnFiber(actor, ah);
+				return null;
+			}
+		}.start();
+		return aid;
+	}
 	
 	/**
 	 * 产生一个线程actor，并且使用指定的Handler来放入线程池执行
@@ -273,6 +383,11 @@ public class ActorSystem {
 	@Suspendable
 	public ActorId spawn(Actor sire, IThreadActorHandler ah){
 		return spawn(sire, ah, LinkType.NO_LINK);
+	}
+
+	@Suspendable
+	public ActorId spawn(Actor sire, String serviceName, IThreadActorHandler ah){
+		return spawn(sire, serviceName, ah, LinkType.NO_LINK);
 	}
 	
 	/**
@@ -286,6 +401,11 @@ public class ActorSystem {
 		return spawn(sire, ah, LinkType.NO_LINK);
 	}
 	
+	@Suspendable
+	public ActorId spawn(Actor sire, String serviceName, IFiberActorHandler ah){
+		return spawn(sire, serviceName, ah, LinkType.NO_LINK);
+	}
+	
 	/**
 	 * 产生一个线程actor，并且使用指定的Handler来放入指定的执行器执行
 	 * @param sire 父Actor
@@ -296,6 +416,11 @@ public class ActorSystem {
 	@Suspendable
 	public ActorId spawn(Actor sire, Executor executor, IThreadActorHandler ah){
 		return spawn(sire, executor, ah, LinkType.NO_LINK);
+	}
+
+	@Suspendable
+	public ActorId spawn(Actor sire, Executor executor, String serviceName, IThreadActorHandler ah){
+		return spawn(sire, executor, serviceName, ah, LinkType.NO_LINK);
 	}
 	
 	/**
@@ -309,6 +434,11 @@ public class ActorSystem {
 	public ActorId spawn(Actor sire, FiberScheduler fibSche, IFiberActorHandler ah){
 		return spawn(sire, fibSche, ah, LinkType.NO_LINK);
 	}
+	
+	@Suspendable
+	public ActorId spawn(Actor sire, FiberScheduler fibSche, String serviceName, IFiberActorHandler ah){
+		return spawn(sire, fibSche, serviceName, ah, LinkType.NO_LINK);
+	}
 
 	/**
 	 * 产生一个线程actor，指定和父Actor的链接关系，并且使用指定的Handler来放入线程池执行
@@ -321,6 +451,11 @@ public class ActorSystem {
 	public ActorId spawn(Actor sire, IThreadActorHandler ah, LinkType link){
 		return spawn(sire, actorThreadPool, ah, link);
 	}
+	
+	@Suspendable
+	public ActorId spawn(Actor sire, String serviceName, IThreadActorHandler ah, LinkType link){
+		return spawn(sire, actorThreadPool, serviceName, ah, link);
+	}
 
 	/**
 	 * 产生一个纤程actor，指定和父Actor的链接关系，并且使用指定的Handler来放入默认的调度器执行
@@ -332,6 +467,11 @@ public class ActorSystem {
 	@Suspendable
 	public ActorId spawn(Actor sire, IFiberActorHandler ah, LinkType link){
 		return spawn(sire, DefaultFiberScheduler.getInstance(), ah, link);
+	}
+
+	@Suspendable
+	public ActorId spawn(Actor sire, String serviceName, IFiberActorHandler ah, LinkType link){
+		return spawn(sire, DefaultFiberScheduler.getInstance(), serviceName, ah, link);
 	}
 
 	/**
@@ -349,6 +489,28 @@ public class ActorSystem {
 		}
 		
 		final Actor actor = makeActor(executor);
+		addLink(sire, actor, link);
+		ActorId aid = actor.getActorId();
+		executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				Actor.runOnThread(actor, ah);
+			}
+		});
+		return aid;
+	}
+
+	@Suspendable
+	public ActorId spawn(Actor sire, Executor executor, String serviceName, final IThreadActorHandler ah, LinkType link){
+		if (executor == null){
+			throw new NullPointerException();
+		}
+		
+		final Actor actor = makeActor(executor, serviceName);
+		if (actor == null){
+			return ActorId.NULL;
+		}
+		
 		addLink(sire, actor, link);
 		ActorId aid = actor.getActorId();
 		executor.execute(new Runnable() {
@@ -387,6 +549,30 @@ public class ActorSystem {
 		}.start();
 		return aid;
 	}
+
+	@Suspendable
+	public ActorId spawn(Actor sire, FiberScheduler fibSche, String serviceName, final IFiberActorHandler ah, LinkType link){
+		if (fibSche == null){
+			throw new NullPointerException();
+		}
+		
+		final Actor actor = makeActor(fibSche, serviceName);
+		if (actor == null){
+			return ActorId.NULL;
+		}
+		
+		addLink(sire, actor, link);
+		ActorId aid = actor.getActorId();
+		new Fiber<Void>(fibSche) {
+			private static final long serialVersionUID = 2841359941298581576L;
+			@Override
+			protected Void run() throws SuspendExecution, InterruptedException {
+				Actor.runOnFiber(actor, ah);
+				return null;
+			}
+		}.start();
+		return aid;
+	}
 	
 	/**
 	 * 产生一个ActorRef
@@ -397,30 +583,28 @@ public class ActorSystem {
 		return new ActorRef(this, refAid);
 	}
 
-//	@Suspendable
-//	public void addRemote(String axid, RemoteInfo remoteInfo){
-//		if (remoteInfo == null){
-//			throw new NullPointerException();
-//		}
-//		
-////		remoteMap.put(Atom.to(axid), remoteInfo);
-//		netMgr.addRemote(Atom.to(axid), remoteInfo);
-//	}
+	@Suspendable
+	public void addRemote(String axid, RemoteInfo remoteInfo){
+		if (remoteInfo == null){
+			throw new NullPointerException();
+		}
+		
+		netMgr.addRemote(Atom.to(axid), remoteInfo);
+	}
 
-//	@Suspendable
-//	public boolean removeRemote(String axid){
-////		return remoteMap.remove(Atom.to(axid));
-//		return netMgr.removeRemote(Atom.to(axid));
-//	}
+	@Suspendable
+	public boolean removeRemote(String axid){
+		return netMgr.removeRemote(Atom.to(axid));
+	}
 	
 	/**
 	 * 监听本地
 	 * @param localInfo
 	 */
-//	@Suspendable
-//	public void listen(LocalInfo localInfo){
-//		netMgr.listen(localInfo);
-//	}
+	@Suspendable
+	public void listen(LocalInfo localInfo){
+		netMgr.listen(localInfo);
+	}
 	
 	/**
 	 * 发送一个自己构建的消息
@@ -877,10 +1061,30 @@ public class ActorSystem {
 	}
 
 	@Suspendable
+	private Actor makeActor(FiberScheduler fibSche, String serviceName){
+		ActorId aid = ServiceUtils.makeServiceId(this, serviceName);
+		Actor actor = new Actor(this, aid, fibSche);
+		if (actorMap.putIfAbsent(aid, actor) != null){
+			return null;
+		}
+		return actor;
+	}
+
+	@Suspendable
 	private Actor makeActor(Executor executor){
 		ActorId aid = generateActorId();
 		Actor actor = new Actor(this, aid, executor);
 		actorMap.put(aid, actor);
+		return actor;
+	}
+
+	@Suspendable
+	private Actor makeActor(Executor executor, String serviceName){
+		ActorId aid = ServiceUtils.makeServiceId(this, serviceName);
+		Actor actor = new Actor(this, aid, executor);
+		if (actorMap.putIfAbsent(aid, actor) != null){
+			return null;
+		}
 		return actor;
 	}
 	

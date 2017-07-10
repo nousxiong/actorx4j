@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import actorx.AbstractCustomMessage;
 import actorx.Actor;
 import actorx.ActorExit;
 import actorx.ActorId;
@@ -20,6 +21,7 @@ import actorx.LinkType;
 import actorx.Message;
 import actorx.Pattern;
 import actorx.util.StringUtils;
+import adata.Stream;
 import co.paralleluniverse.fibers.SuspendExecution;
 import cque.util.PoolGuard;
 
@@ -29,11 +31,12 @@ import cque.util.PoolGuard;
  */
 public class CustomMessage {
 	
-	static class Hello extends Message {
-		private String tag;
+	static class Hello extends AbstractCustomMessage {
+		private String tag = "";
 		public static final String TYPE = "HELLO";
 		
 		public Hello(String tag){
+			super("cmsg.Hello");
 			super.setType(TYPE);
 			this.tag = tag;
 		}
@@ -41,16 +44,36 @@ public class CustomMessage {
 		public String getTag() {
 			return tag;
 		}
+
+		@Override
+		public void cread(Stream stream) {
+			tag = stream.readString();
+		}
+
+		@Override
+		public void cwrite(Stream stream) {
+			stream.writeString(tag);
+		}
+
+		@Override
+		public int csizeOf() {
+			return Stream.sizeOfString(tag);
+		}
 	}
 	
 	static class End extends Hello {
 		public End() {
 			super("end");
 		}
+
+		@Override
+		public String ctype() {
+			return "cmsg.End";
+		}
 	}
 
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		ActorSystem axs = new ActorSystem();
 		axs.startup();
 
@@ -68,7 +91,7 @@ public class CustomMessage {
 				
 				boolean goon = true;
 				while (goon){
-					try(PoolGuard guard = self.precv(patt)){
+					try (PoolGuard guard = self.precv(patt)){
 						Message msg = guard.get();
 						if (msg == null){
 							// 超时
@@ -109,13 +132,12 @@ public class CustomMessage {
 		
 		ActorExit axExit = baseAx.recvExit();
 		assertTrue(axExit.getExitType() == ExitType.EXCEPT);
-		System.out.println(axExit.getErrmsg());
 	
 		axs.shutdown();
 	}
 	
 	@Test
-	public void testFiber(){
+	public void testFiber() throws InterruptedException{
 		ActorSystem axs = new ActorSystem();
 		axs.startup();
 
@@ -174,7 +196,6 @@ public class CustomMessage {
 		
 		ActorExit axExit = baseAx.recvExit();
 		assertTrue(axExit.getExitType() == ExitType.EXCEPT);
-		System.out.println(axExit.getErrmsg());
 	
 		axs.shutdown();
 	}

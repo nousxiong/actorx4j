@@ -30,7 +30,7 @@ import actorx.util.StringUtils;
 public class ActorBase {
 
 	@Test
-	public void test(){
+	public void test() throws InterruptedException {
 		ActorSystem axs = new ActorSystem();
 		axs.startup();
 
@@ -88,7 +88,7 @@ public class ActorBase {
 	}
 	
 	@Test
-	public void testFiber(){
+	public void testFiber() throws InterruptedException {
 		ActorSystem axs = new ActorSystem();
 		axs.startup();
 

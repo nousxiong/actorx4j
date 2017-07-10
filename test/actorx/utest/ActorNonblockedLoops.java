@@ -28,7 +28,7 @@ public class ActorNonblockedLoops {
 	private static final int count = 100000;
 	
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		MessagePool.init(1, count*concurr, count*concurr);
 		handleTest(-1);
 		long eclipse = handleTest(0);
@@ -47,7 +47,7 @@ public class ActorNonblockedLoops {
 		System.out.printf("Fiber eclipse time: %d ms\n", eclipse);
 	}
 
-	private long handleTest(int idx){
+	private long handleTest(int idx) throws InterruptedException{
 		ActorSystem axs = new ActorSystem(concurr);
 		axs.startup();
 
@@ -100,7 +100,7 @@ public class ActorNonblockedLoops {
 		return TimeUnit.NANOSECONDS.toMillis(eclipse);
 	}
 
-	private long handleTestFiber(int idx){
+	private long handleTestFiber(int idx) throws InterruptedException{
 		ActorSystem axs = new ActorSystem(concurr);
 		axs.startup();
 

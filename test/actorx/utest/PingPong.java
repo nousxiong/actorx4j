@@ -27,7 +27,7 @@ public class PingPong {
 	private static final int count = 10000;
 	
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		MessagePool.init(1, count*2, count*2);
 		handleTestFiber(-1);
 		long eclipse = handleTestFiber(0);
@@ -45,7 +45,7 @@ public class PingPong {
 		System.out.println("Thread test all done, average eclipse: "+eclipse);
 	}
 	
-	public long handleTest(int idx){
+	public long handleTest(int idx) throws InterruptedException{
 		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup();
 
@@ -88,7 +88,7 @@ public class PingPong {
 		return TimeUnit.NANOSECONDS.toMillis(eclipse);
 	}
 	
-	public long handleTestFiber(int idx){
+	public long handleTestFiber(int idx) throws InterruptedException{
 		ActorSystem ctx = new ActorSystem("AXS");
 		ctx.startup();
 

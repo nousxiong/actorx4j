@@ -49,3 +49,14 @@ actorx.ActorSystem.send
 actorx.ActorSystem.getActor
 actorx.ActorSystem.removeActor
 actorx.ActorSystem.makeActor
+actorx.remote.NetworkManager.start
+actorx.remote.NetworkManager.listen
+actorx.remote.NetworkManager.sendRemote
+actorx.remote.NetworkManager.addRemote
+actorx.remote.NetworkManager.removeRemote
+actorx.remote.NetworkManager.addNetSession
+actorx.remote.NetworkManager.hasNetSession
+actorx.remote.NetworkManager.removeNetSession
+actorx.remote.NetworkManager.stop
+actorx.detail.StrandSynchronizer.await
+actorx.detail.StrandSynchronizer.awaitNanos

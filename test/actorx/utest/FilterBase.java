@@ -67,7 +67,7 @@ public class FilterBase {
 	}
 
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 
@@ -131,7 +131,7 @@ public class FilterBase {
 	}
 	
 	@Test
-	public void testFiber(){
+	public void testFiber() throws InterruptedException{
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 

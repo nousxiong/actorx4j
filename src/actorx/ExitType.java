@@ -10,7 +10,7 @@ package actorx;
 public enum ExitType {
 	NORMAL(0), // 正常退出
 	EXCEPT(1), // 异常退出
-	ALREADY(2), // 链接时已经退出
+	EXITED(2), // 链接时已经退出
 	NETERR(3), // 网络错误
 	;
 

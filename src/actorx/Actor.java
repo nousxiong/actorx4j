@@ -18,6 +18,7 @@ import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import actorx.detail.IMail;
 import actorx.detail.Mailbox;
 import actorx.detail.StrandSynchronizer;
+import actorx.remote.NetworkManager;
 import actorx.util.ContainerUtils;
 import actorx.util.ExceptionUtils;
 import cque.AbstractNode;
@@ -157,10 +158,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public void send(ActorId toAid){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
-		
 		Message msg = makeNewMessage();
 		sendMessage(toAid, selfAid, AtomCode.NULLTYPE, msg);
 	}
@@ -172,19 +169,12 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public void send(ActorId toAid, String type){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
-		
 		Message msg = makeNewMessage();
 		sendMessage(toAid, selfAid, type, msg);
 	}
 	
 	@Suspendable
 	public <A> void send(ActorId toAid, String type, A arg){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -196,9 +186,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1> void send(ActorId toAid, String type, A arg, A1 arg1){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -214,9 +201,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -236,9 +220,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -262,9 +243,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -292,9 +270,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4, A5> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -326,9 +301,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4, A5, A6> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -364,9 +336,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4, A5, A6, A7> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -406,9 +375,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4, A5, A6, A7, A8> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -452,9 +418,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	
 	@Suspendable
 	public <A, A1, A2, A3, A4, A5, A6, A7, A8, A9> void send(ActorId toAid, String type, A arg, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6, A7 arg7, A8 arg8, A9 arg9){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (arg == null){
 			throw new NullPointerException();
 		}
@@ -509,7 +472,7 @@ public class Actor extends AbstractNode implements IRecycler {
 //	@Suspendable
 //	public void send(ActorId toAid, String type, Object... args){
 //		if (isExited()){
-//			throw new IllegalStateException();
+//			throw new ActorInterruptedException();
 //		}
 //		
 //		Message msg = makeNewMessage();
@@ -533,9 +496,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public void send(ActorId toAid, Message src){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (src == null){
 			throw new NullPointerException();
 		}
@@ -551,9 +511,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public void relay(ActorId toAid, Message src){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
 		if (src == null){
 			throw new NullPointerException();
 		}
@@ -569,13 +526,10 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public <C extends Message> void csend(ActorId toAid, C msg){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
-
 		if (msg == null){
 			throw new NullPointerException();
 		}
+		
 		sendMessage(toAid, selfAid, msg.getType(), msg);
 	}
 
@@ -587,10 +541,6 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public <C extends Message> void csend(ActorId toAid, String type, C msg){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
-
 		if (msg == null){
 			throw new NullPointerException();
 		}
@@ -599,14 +549,19 @@ public class Actor extends AbstractNode implements IRecycler {
 	}
 
 	@Suspendable
-	public <C extends Message> void crelay(ActorId toAid, C msg){
-		if (isExited()){
-			throw new IllegalStateException();
-		}
-		if (msg == null){
+	public <C extends AbstractCustomMessage> void crelay(ActorId toAid, C src){
+		if (src == null){
 			throw new NullPointerException();
 		}
 		
+		ICustomMessageFactory factory = axs.getCustomMessageMap().get(src.ctype());
+		if (factory == null){
+			throw new RuntimeException("Custom type "+src.ctype()+" not found! Fogotten register?");
+		}
+		
+		AbstractCustomMessage msg = factory.createInstance();
+		msg.copy(src);
+//		AbstractCustomMessage msg = src;
 		sendMessage(toAid, msg.getSender(), msg.getType(), msg);
 	}
 	
@@ -678,14 +633,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配的消息
 	 * @param type
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(String type){
+	public Message recv(String type) throws InterruptedException {
 		return recv(Message.NULL, type);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, String type){
+	public Message recv(Message cmsg, String type) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(type);
 		Message msg = recvMessage(pattern);
@@ -697,14 +653,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * @param type1
 	 * @param type2
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(String type1, String type2){
+	public Message recv(String type1, String type2) throws InterruptedException {
 		return recv(Message.NULL, type1, type2);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, String type1, String type2){
+	public Message recv(Message cmsg, String type1, String type2) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(type1);
 		pattern.match(type2);
@@ -716,14 +673,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配的消息
 	 * @param types
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(String... types){
+	public Message recv(String... types) throws InterruptedException {
 		return recv(Message.NULL, types);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, String... types){
+	public Message recv(Message cmsg, String... types) throws InterruptedException {
 		Pattern pattern = getPattern();
 		for (String type : types){
 			pattern.match(type);
@@ -736,14 +694,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(ActorId sender){
+	public Message recv(ActorId sender) throws InterruptedException {
 		return recv(Message.NULL, sender);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, ActorId sender){
+	public Message recv(Message cmsg, ActorId sender) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(sender);
 		Message msg = recvMessage(pattern);
@@ -754,14 +713,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(ActorId sender, String type){
+	public Message recv(ActorId sender, String type) throws InterruptedException {
 		return recv(Message.NULL, sender, type);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, ActorId sender, String type){
+	public Message recv(Message cmsg, ActorId sender, String type) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(sender, type);
 		Message msg = recvMessage(pattern);
@@ -772,14 +732,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(ActorId sender, String type1, String type2){
+	public Message recv(ActorId sender, String type1, String type2) throws InterruptedException {
 		return recv(Message.NULL, sender, type1, type2);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, ActorId sender, String type1, String type2){
+	public Message recv(Message cmsg, ActorId sender, String type1, String type2) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(sender, type1, type2);
 		Message msg = recvMessage(pattern);
@@ -790,14 +751,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定匹配ActorId的消息
 	 * @param sender
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(ActorId sender, String... types){
+	public Message recv(ActorId sender, String... types) throws InterruptedException {
 		return recv(Message.NULL, sender, types);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, ActorId sender, String... types){
+	public Message recv(Message cmsg, ActorId sender, String... types) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.match(sender, types);
 		Message msg = recvMessage(pattern);
@@ -807,14 +769,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	/**
 	 * 接收消息
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(){
+	public Message recv() throws InterruptedException {
 		return recv(Message.NULL);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg){
+	public Message recv(Message cmsg) throws InterruptedException {
 		Pattern pattern = getPattern();
 		Message msg = recvMessage(pattern);
 		return Message.move(msg, cmsg);
@@ -824,14 +787,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定超时时间的消息
 	 * @param timeout
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(long timeout){
+	public Message recv(long timeout) throws InterruptedException {
 		return recv(Message.NULL, timeout);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, long timeout){
+	public Message recv(Message cmsg, long timeout) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.after(timeout);
 		Message msg = recvMessage(pattern);
@@ -843,14 +807,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * @param timeout
 	 * @param timeUnit
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(long timeout, TimeUnit timeUnit){
+	public Message recv(long timeout, TimeUnit timeUnit) throws InterruptedException {
 		return recv(Message.NULL, timeout, timeUnit);
 	}
 
 	@Suspendable
-	public Message recv(Message cmsg, long timeout, TimeUnit timeUnit){
+	public Message recv(Message cmsg, long timeout, TimeUnit timeUnit) throws InterruptedException {
 		Pattern pattern = getPattern();
 		pattern.after(timeout, timeUnit);
 		Message msg = recvMessage(pattern);
@@ -861,14 +826,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收指定模式的消息
 	 * @param patt
 	 * @return
+	 * @throws InterruptedException
 	 */
 	@Suspendable
-	public Message recv(Pattern pattern){
+	public Message recv(Pattern pattern) throws InterruptedException {
 		return recv(Message.NULL, pattern);
 	}
 	
 	@Suspendable
-	public Message recv(Message cmsg, Pattern pattern){
+	public Message recv(Message cmsg, Pattern pattern) throws InterruptedException {
 		Message msg = recvMessage(pattern);
 		return Message.move(msg, cmsg);
 	}
@@ -879,9 +845,10 @@ public class Actor extends AbstractNode implements IRecycler {
 	/**
 	 * 接收{@link AtomCode#EXIT}消息
 	 * @return
+	 * @throws InterruptedException 
 	 */
 	@Suspendable
-	public ActorExit recvExit(){
+	public ActorExit recvExit() throws InterruptedException{
 		return recvExit(Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
 
@@ -889,9 +856,10 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 
 	 * @param sender
 	 * @return
+	 * @throws InterruptedException 
 	 */
 	@Suspendable
-	public ActorExit recvExit(ActorId sender){
+	public ActorExit recvExit(ActorId sender) throws InterruptedException{
 		return recvExit(sender, Pattern.DEFAULT_TIMEOUT);
 	}
 	
@@ -899,14 +867,15 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * 接收{@link AtomCode#EXIT}消息
 	 * @param timeout
 	 * @return
+	 * @throws InterruptedException 
 	 */
 	@Suspendable
-	public ActorExit recvExit(long timeout){
+	public ActorExit recvExit(long timeout) throws InterruptedException{
 		return recvExit(timeout, Pattern.DEFAULT_TIMEUNIT);
 	}
 
 	@Suspendable
-	public ActorExit recvExit(ActorId sender, long timeout){
+	public ActorExit recvExit(ActorId sender, long timeout) throws InterruptedException{
 		return recvExit(sender, Pattern.DEFAULT_TIMEOUT, Pattern.DEFAULT_TIMEUNIT);
 	}
 	
@@ -915,9 +884,10 @@ public class Actor extends AbstractNode implements IRecycler {
 	 * @param timeout
 	 * @param timeUnit
 	 * @return
+	 * @throws InterruptedException 
 	 */
 	@Suspendable
-	public ActorExit recvExit(long timeout, TimeUnit timeUnit){
+	public ActorExit recvExit(long timeout, TimeUnit timeUnit) throws InterruptedException{
 		Pattern pattern = getPattern();
 		pattern.match(AtomCode.EXIT);
 		try (PoolGuard guard = precv(pattern)){
@@ -929,13 +899,13 @@ public class Actor extends AbstractNode implements IRecycler {
 			ActorExit axExit = msg.get(ActorExit.class);
 			axExit.setSender(msg.getSender());
 			return axExit;
-		}catch (Throwable e){
-			return null;
+		}catch (InterruptedException e){
+			throw e;
 		}
 	}
 
 	@Suspendable
-	public ActorExit recvExit(ActorId sender, long timeout, TimeUnit timeUnit){
+	public ActorExit recvExit(ActorId sender, long timeout, TimeUnit timeUnit) throws InterruptedException{
 		Pattern pattern = getPattern();
 		pattern.match(sender, AtomCode.EXIT);
 		try (PoolGuard guard = precv(pattern)){
@@ -947,8 +917,8 @@ public class Actor extends AbstractNode implements IRecycler {
 			ActorExit axExit = msg.get(ActorExit.class);
 			axExit.setSender(msg.getSender());
 			return axExit;
-		}catch (Throwable e){
-			return null;
+		}catch (InterruptedException e){
+			throw e;
 		}
 	}
 	
@@ -1012,6 +982,12 @@ public class Actor extends AbstractNode implements IRecycler {
 		}
 	}
 	
+
+	@Suspendable
+	public void interrupt(){
+		
+	}
+	
 	/**
 	 * 取得自己的ActorId
 	 * @return
@@ -1036,6 +1012,13 @@ public class Actor extends AbstractNode implements IRecycler {
 	 */
 	@Suspendable
 	public static boolean sendMessage(ActorSystem axs, ActorId recvAid, Message msg){
+		// 如果是非本地actor，发送给网络管理器
+		if (!axs.isLocalActor(recvAid)){
+			NetworkManager netMgr = axs.getNetworkManager();
+			netMgr.sendRemote(recvAid, msg);
+			return true;
+		}
+		
 		Actor a = axs.getActor(recvAid);
 		if (a == null){
 			return false;
@@ -1045,14 +1028,15 @@ public class Actor extends AbstractNode implements IRecycler {
 		return true;
 	}
 	
+	@Suspendable
+	public PoolGuard precv(Pattern pattern) throws InterruptedException {
+		return makeGuard(recvMessage(pattern));
+	}
+
+	
 	///------------------------------------------------------------------------
 	/// 以下方法内部使用
 	///------------------------------------------------------------------------
-	@Suspendable
-	public PoolGuard precv(Pattern pattern){
-		return makeGuard(recvMessage(pattern));
-	}
-	
 //	/**
 //	 * 批量发送
 //	 * @param toAid 接收者
@@ -1060,7 +1044,7 @@ public class Actor extends AbstractNode implements IRecycler {
 //	 */
 //	void batchSend(ActorId toAid, Message bmsg){
 //		if (isExited()){
-//			throw new IllegalStateException();
+//			throw new ActorInterruptedException();
 //		}
 //		if (bmsg == null){
 //			throw new NullPointerException();
@@ -1116,7 +1100,7 @@ public class Actor extends AbstractNode implements IRecycler {
 	public static ActorExit linkFromRemote(ActorSystem axSys, ActorId remoteAid, ActorId localAid){
 		Actor ax = axSys.getActor(localAid);
 		if (ax == null){
-			return new ActorExit(ExitType.ALREADY, "already exited");
+			return new ActorExit(ExitType.EXITED, "already exited");
 		}
 		
 //		String type = isMonitor ? AtomCode.MONITOR : AtomCode.LINK;
@@ -1125,7 +1109,7 @@ public class Actor extends AbstractNode implements IRecycler {
 		try{
 			// 获取锁后查一次此actor是否已经退出
 			if (ax.isExited()){
-				return new ActorExit(ExitType.ALREADY, "already exited");
+				return new ActorExit(ExitType.EXITED, "already exited");
 			}
 			
 			ax.addLinked(remoteAid);
@@ -1137,24 +1121,31 @@ public class Actor extends AbstractNode implements IRecycler {
 
 	@Suspendable
 	private void link(ActorId aid, boolean isMonitor){
-		if (isExited()){
-			throw new IllegalStateException();
+		String type = isMonitor ? AtomCode.MONITOR : AtomCode.LINK;
+		
+		// 如果是非本地actor，直接发给网络管理器
+		if (!axs.isLocalActor(aid)){
+			NetworkManager netMgr = axs.getNetworkManager();
+			Message msg = makeNewMessage();
+			msg.setType(type);
+			msg.setSender(selfAid);
+			netMgr.sendRemote(aid, msg);
+			return;
 		}
 		
 		Actor ax = axs.getActor(aid);
 		if (ax == null){
-			axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+			axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.EXITED, "already exited"));
 			return;
 		}
 		
-		String type = isMonitor ? AtomCode.MONITOR : AtomCode.LINK;
 		ReentrantLock linkLock = ax.linkLock;
 		linkLock.lock();
 //		synchronized (ax){
 		try{
 			// 获取锁后查一次此actor是否已经退出
 			if (ax.isExited()){
-				axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.ALREADY, "already exited"));
+				axs.send(aid, selfAid, AtomCode.EXIT, new ActorExit(ExitType.EXITED, "already exited"));
 				return;
 			}
 			
@@ -1207,13 +1198,12 @@ public class Actor extends AbstractNode implements IRecycler {
 	@Suspendable
 	private void addMessage(Message msg){
 		msgQue.put(msg);
-//		msgQue.offer(msg);
 	}
 	
 	@Suspendable
-	private Message recvMessage(Pattern pattern){
+	private Message recvMessage(Pattern pattern) throws InterruptedException {
 		if (isExited()){
-			throw new IllegalStateException();
+			throw new InterruptedException();
 		}
 		
 		List<String> matchedTypes = pattern.getMatchedTypes();
@@ -1226,7 +1216,6 @@ public class Actor extends AbstractNode implements IRecycler {
 			IMail mail = mailbox.fetch(matchedTypes, matchedActors, recvFilters);
 			if (mail != null){
 				msg = (Message) mail;
-//				return makeGuard(msg);
 				return msg;
 			}
 		}
@@ -1240,21 +1229,10 @@ public class Actor extends AbstractNode implements IRecycler {
 			}
 			
 			msg = msgQue.poll(currTimeout, TimeUnit.NANOSECONDS);
-//			msg = msgQue.poll();
 			if (msg == null){
 				break;
 			}
 			
-//			Message bmsg = msg;
-//			boolean batchMsg = StringUtils.equals(AtomCode.BATCHMSG, msg.getType());
-//			final int argsSize = batchMsg ? msg.argsSize() : 1;
-//			for (int i=0; i<argsSize; ++i){
-//				if (batchMsg){
-//					msg = bmsg.getMsg(tmsg);
-//					if (tmsg == msg){
-//						tmsg = MessagePool.borrowObject();
-//					}
-//				}
 			if (AtomCode.equals(AtomCode.EXIT, msg.getType())){
 				// 从link和linked列表移除
 				ActorId aid = msg.getSender();
@@ -1275,25 +1253,16 @@ public class Actor extends AbstractNode implements IRecycler {
 			boolean typesEmpty = ContainerUtils.isEmpty(matchedTypes);
 			boolean actorsEmpty = ContainerUtils.isEmpty(matchedActors);
 			if (typesEmpty && actorsEmpty){
-//					break;
-//					if (batchMsg){
-//						endBatch(bmsg, argsSize - i - 1);
-//					}
 				return msg;
 			}
 			
 			boolean found = Mailbox.match(msg, matchedTypes, matchedActors);
 			if (found){
-//					break;
-//					if (batchMsg){
-//						endBatch(bmsg, argsSize - i - 1);
-//					}
 				return msg;
 			}else{
 				Mailbox mailbox = getMailbox();
 				mailbox.add(msg);
 			}
-//			}
 			
 			if (bt > 0){
 				eclipse = System.nanoTime() - bt;
@@ -1305,7 +1274,6 @@ public class Actor extends AbstractNode implements IRecycler {
 			}
 			
 			if (currTimeout == 0){
-//				break;
 				return msg;
 			}
 		}

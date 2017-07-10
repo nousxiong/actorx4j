@@ -10,7 +10,7 @@ import actorx.adl.IAdlAdapter;
  *
  */
 public class ActorExit extends actorx.adl.ActorExit implements IAdlAdapter {
-	
+	// 不参与序列化，仅仅是夹带用途
 	private ActorId sender;
 	
 	public ActorExit(){

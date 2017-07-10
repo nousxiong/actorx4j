@@ -30,7 +30,7 @@ public class ActorLoops {
 	private static final int count = 100000;
 	
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		MessagePool.init(1, count*concurr, count*concurr);
 		handleTestFiber(-1);
 		long eclipse = handleTestFiber(0);
@@ -48,9 +48,7 @@ public class ActorLoops {
 		System.out.println("Thread test all done, average eclipse: "+eclipse);
 	}
 	
-	long handleTest(int idx){
-		MessagePool.init(1, count*concurr, count*concurr);
-		
+	long handleTest(int idx) throws InterruptedException{
 		ActorSystem axs = new ActorSystem(concurr);
 		axs.startup();
 
@@ -103,9 +101,7 @@ public class ActorLoops {
 		return TimeUnit.NANOSECONDS.toMillis(eclipse);
 	}
 	
-	long handleTestFiber(int idx){
-//		System.out.println("Concurrent count: "+concurr);
-		
+	long handleTestFiber(int idx) throws InterruptedException{
 		ActorSystem axs = new ActorSystem(concurr);
 		axs.startup();
 
@@ -154,7 +150,6 @@ public class ActorLoops {
 		long eclipse = System.nanoTime() - bt;
 		axs.shutdown();
 		
-//		System.out.printf("Fiber eclipse time: %d ms\n", TimeUnit.NANOSECONDS.toMillis(eclipse));
 		if (idx != -1){
 			System.out.println(idx + " done, concurrent count: "+concurr);
 		}

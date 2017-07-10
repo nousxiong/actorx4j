@@ -32,7 +32,7 @@ public class ProfileActorMpsc {
 	private final Message cmsg = new Message();
 //	private final int[] counts = new int[concurr];
 
-	void run(){
+	void run() throws InterruptedException {
 		MessagePool.init(1, count * concurr, count * concurr);
 		axs.startup();
 		
@@ -92,12 +92,13 @@ public class ProfileActorMpsc {
 	
 	/**
 	 * @param args
+	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		new ProfileActorMpsc().run();
 	}
 	
-	long handleTest(int testIndex){
+	long handleTest(int testIndex) throws InterruptedException {
 //		Arrays.fill(counts, 0);
 		
 		long bt = System.nanoTime();

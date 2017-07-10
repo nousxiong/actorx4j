@@ -75,7 +75,7 @@ public class DiyExecutor {
 	}
 	
 	@Test
-	public void test() {
+	public void test() throws InterruptedException {
 		MessagePool.init(1, count*concurr, count*concurr);
 		handleTest(-1);
 		long eclipse = handleTest(0);
@@ -94,7 +94,7 @@ public class DiyExecutor {
 		System.out.printf("Fiber eclipse time: %d ms\n", eclipse);
 	}
 
-	long handleTest(int idx){
+	long handleTest(int idx) throws InterruptedException{
 		// Diy executor
 		ExecutorService executor = Executors.newCachedThreadPool();
 		
@@ -150,7 +150,7 @@ public class DiyExecutor {
 		return TimeUnit.NANOSECONDS.toMillis(eclipse);
 	}
 
-	long handleTestFiber(int idx){
+	long handleTestFiber(int idx) throws InterruptedException{
 		// Diy executor
 		ExecutorService executor = Executors.newCachedThreadPool();
 		FiberScheduler fibSche = new FiberExecutorScheduler("AXSFIBSCHE", executor);

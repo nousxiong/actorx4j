@@ -43,8 +43,43 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 	 */
 	public static Message make(Message src){
 		Message msg = make();
-		msg.sender = src.sender;
-		msg.type = src.type;
+		msg.copy(src);
+//		msg.sender = src.sender;
+//		msg.type = src.type;
+		
+//		if (!src.argsIsEmpty() && src.cowBuffer == null){
+//			src.cowBuffer = CowBufferPool.borrowObject();
+//		}
+		
+//		if (src.cowBuffer != null || !src.argsIsEmpty()){
+			// 将src所有参数序列化后再做共享
+//			int argsLen = src.argsLength();
+//			int length = src.isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
+//			src.reserve(argsLen + length);
+//			src.writeArgs(AdataUtils.getStream());
+			
+//			int length = src.argsLength();
+//			int metaLen = src.metaLength(length);
+//			src.reserve(length + metaLen);
+//			src.writeArgs(length);
+//			src.cowBuffer.incrRef();
+//			msg.cowBuffer = src.cowBuffer;
+//		}
+		
+//		msg.writeIndex = src.writeIndex;
+//		if (!src.argsIsEmpty()){
+//			msg.argsCopyFrom(src);
+//		}
+		return msg;
+	}
+	
+	protected void copy(Message src){
+		if (this == src){
+			throw new RuntimeException("cannot copy self");
+		}
+		
+		this.sender = src.sender;
+		this.type = src.type;
 		
 //		if (!src.argsIsEmpty() && src.cowBuffer == null){
 //			src.cowBuffer = CowBufferPool.borrowObject();
@@ -62,14 +97,13 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 //			src.reserve(length + metaLen);
 //			src.writeArgs(length);
 			src.cowBuffer.incrRef();
-			msg.cowBuffer = src.cowBuffer;
+			this.cowBuffer = src.cowBuffer;
 		}
 		
-		msg.writeIndex = src.writeIndex;
+		this.writeIndex = src.writeIndex;
 		if (!src.argsIsEmpty()){
-			msg.argsCopyFrom(src);
+			this.argsCopyFrom(src);
 		}
-		return msg;
 	}
 	
 //	public static Message make(byte[] bytes){
@@ -245,30 +279,30 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 		return dest;
 	}
 	
-	// 序列化所有的参数到buffer中，并返回；调用此方法后，消息本身已释放，已经不合法
-	CowBuffer move(){
-		if (argsIsEmpty()){
-			release();
-			return null;
-		}
-		
-//		int argsLen = argsLength();
-//		int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
-//		reserve(argsLen + length);
-		// 将能序列化的对象序列化
-		Stream stream = AdataUtils.getStream();
-		writeArgs(stream);
-		writeMeta(stream);
-		
-		CowBuffer buffer = null;
-		if (cowBuffer != null){
-			buffer = cowBuffer;
-			cowBuffer = null;
-		}
-		
-		release();
-		return buffer;
-	}
+//	// 序列化所有的参数到buffer中，并返回；调用此方法后，消息本身已释放，已经不合法
+//	CowBuffer move(){
+//		if (argsIsEmpty()){
+//			release();
+//			return null;
+//		}
+//		
+////		int argsLen = argsLength();
+////		int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
+////		reserve(argsLen + length);
+//		// 将能序列化的对象序列化
+//		Stream stream = AdataUtils.getStream();
+//		writeArgs(stream);
+//		writeMeta(stream);
+//		
+//		CowBuffer buffer = null;
+//		if (cowBuffer != null){
+//			buffer = cowBuffer;
+//			cowBuffer = null;
+//		}
+//		
+//		release();
+//		return buffer;
+//	}
 	
 	@Override
 	public void read(Stream stream){
@@ -297,37 +331,38 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 			CowBuffer.copy(srcBuffer, cowBuffer, stream.readLength() - Stream.fixSizeOfInt32(), bufferSize);
 			stream.skipRead(argsLen);
 		}
-		
-		sender.read(stream);
-		type = Atom.from(stream.readInt64());
-		argsSize = stream.readInt32();
+
+		// 反序列化meta数据
+		readMeta(stream);
 	}
 	
 	@Override
 	public void write(Stream stream){
-		if (argsIsEmpty()){
-			return;
-		}
-
 		int argsLen = argsLength();
 		int startPos = stream.writeLength();
 		int bufferSize = 0;
 		boolean startBufferEmpty = isBufferEmpty();
 		if (!startBufferEmpty){
+			byte[] src = cowBuffer.getBuffer();
 			// 读出当前cowBuffer的参数长度值
 			byte[] oldReadBuffer = stream.getReadBuffer();
-			int oldReadLen = stream.readLength();
-			stream.setReadBuffer(cowBuffer.getBuffer());
-			stream.clearRead();
+			int oldReadLen = AdataUtils.yieldRead(stream);
+			stream.setReadBuffer(src);
+//			stream.clearRead();
 			bufferSize = stream.fixReadInt32();
 			stream.setReadBuffer(oldReadBuffer);
-			stream.clearRead();
-			stream.skipRead(oldReadLen);
+//			stream.clearRead();
+//			stream.skipRead(oldReadLen);
+			AdataUtils.resumeRead(stream, oldReadLen);
 			
 			// 拷贝已经序列化的部分
 			byte[] dest = stream.getWriteBuffer();
-			System.arraycopy(cowBuffer.getBuffer(), 0, dest, startPos, bufferSize + Stream.fixSizeOfInt32());
-			stream.skipWrite(bufferSize + Stream.fixSizeOfInt32());
+			int cpLen = bufferSize + Stream.fixSizeOfInt32();
+			if (cpLen > dest.length - startPos){
+				System.out.println("msg: "+this+", cowbuf: "+cowBuffer+", startPos: "+startPos+", cpLen: "+cpLen+", dest: "+dest.length);
+			}
+			System.arraycopy(src, 0, dest, startPos, cpLen);
+			stream.skipWrite(cpLen);
 		}
 		
 		if (startBufferEmpty){
@@ -343,12 +378,13 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 				writeArg(stream, arg);
 			}
 			if (!startBufferEmpty){
-				int writeLen = stream.writeLength();
-				stream.clearWrite();
+				int writeLen = AdataUtils.yieldWrite(stream);
+//				stream.clearWrite();
 				stream.skipWrite(startPos);
 				stream.fixWriteInt32(argsLen + bufferSize);
-				stream.clearWrite();
-				stream.skipWrite(writeLen);
+//				stream.clearWrite();
+//				stream.skipWrite(writeLen);
+				AdataUtils.resumeWrite(stream, writeLen);
 			}
 		}
 		
@@ -374,12 +410,17 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 //			int argsLen = argsLength();
 //			int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
 //			reserve(argsLen + length);
+			System.out.println("cowBuffer: "+cowBuffer);
 			// 将能序列化的对象序列化
 			writeArgs(AdataUtils.getStream());
 		}
 	}
 	
 	private void reserve(int grownLen){
+		if (AtomCode.equals(AtomCode.EXIT, type)){
+			System.out.println("EXIT msg reserve msg: "+this);
+		}
+		
 		if (cowBuffer == null){
 			cowBuffer = CowBufferPool.borrowObject(grownLen);
 		}else{
@@ -441,9 +482,10 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 		int argsLen = argsLength();
 		int length = isBufferEmpty() ? Stream.fixSizeOfInt32() : 0;
 		reserve(argsLen + length);
-		if (argsLen == 0){
-			return;
-		}
+		System.out.println("writeArgs type: "+type+", cowBuf: "+cowBuffer);
+//		if (argsLen == 0){
+//			return;
+//		}
 		
 //		Stream stream = AdataUtils.getStream();
 		
@@ -454,13 +496,14 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 		if (!startBufferEmpty){
 			// 读出当前cowBuffer的参数长度值
 			byte[] oldReadBuffer = stream.getReadBuffer();
-			int oldReadLen = stream.readLength();
+			int oldReadLen = AdataUtils.yieldRead(stream);
 			stream.setReadBuffer(cowBuffer.getBuffer());
-			stream.clearRead();
+//			stream.clearRead();
 			bufferSize = stream.fixReadInt32();
 			stream.setReadBuffer(oldReadBuffer);
-			stream.clearRead();
-			stream.skipRead(oldReadLen);
+//			stream.clearRead();
+//			stream.skipRead(oldReadLen);
+			AdataUtils.resumeRead(stream, oldReadLen);
 		}
 		
 		if (startBufferEmpty){
@@ -479,11 +522,12 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 		}
 		cowBuffer.write(stream.writeLength() - writeLen);
 		if (!startBufferEmpty){
-			writeLen = stream.writeLength();
-			stream.clearWrite();
+			writeLen = AdataUtils.yieldWrite(stream);
+//			stream.clearWrite();
 			stream.fixWriteInt32(argsLen + bufferSize);
-			stream.clearWrite();
-			stream.skipWrite(writeLen);
+//			stream.clearWrite();
+//			stream.skipWrite(writeLen);
+			AdataUtils.resumeWrite(stream, writeLen);
 		}
 
 //		stream.fixWriteInt32(length);
@@ -509,6 +553,14 @@ public class Message extends AbstractMessage implements /*INode, */IMail, IAdlAd
 //			}
 //		}
 //	}
+	
+	private void readMeta(Stream stream){
+		// Xiong 这里必须要new一个，因为旧的可能是NULLAID或者正在被别处使用
+		sender = new ActorId();
+		sender.read(stream);
+		type = Atom.from(stream.readInt64());
+		argsSize = stream.readInt32();
+	}
 	
 	private void writeMeta(Stream stream){
 		writeArg(stream, sender);

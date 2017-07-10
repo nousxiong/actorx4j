@@ -30,7 +30,7 @@ import actorx.Message;
 public class LinkBase {
 
 	@Test
-	public void test(){
+	public void test() throws InterruptedException{
 		ActorSystem axs = new ActorSystem("AXS");
 		axs.startup();
 
@@ -39,10 +39,10 @@ public class LinkBase {
 		ax1.quit();
 		baseAx.link(ax1.getActorId());
 		ActorExit axExit = baseAx.recvExit();
-		assertTrue(axExit.getExitType() == ExitType.ALREADY);
+		assertTrue(axExit.getExitType() == ExitType.EXITED);
 		baseAx.monitor(ax1.getActorId());
 		axExit = baseAx.recvExit();
-		assertTrue(axExit.getExitType() == ExitType.ALREADY);
+		assertTrue(axExit.getExitType() == ExitType.EXITED);
 		
 		Actor ax2 = axs.spawn();
 		baseAx.link(ax2.getActorId());
